@@ -20,9 +20,9 @@ outputstack: stack storing the "outputs" of applied operations or stores for fut
 
 A = 2, B = 3, C = 4
 
-expr = A * B + C
+expr = A \* B + C
 
-expr(RPN): AB*C+
+expr(RPN): AB\*C+
 
 ```
 stack[5] = {0,1,0,1,1}
