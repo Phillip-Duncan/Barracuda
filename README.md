@@ -30,14 +30,14 @@ opstack[2] = {0x3CC, 0x3CE};
 valuestack[3] = {4,3,2};
 ```
 
-The above code evaluates to:
-push(2)  --> A
-push(3)  --> B
-v = mult(2,3) --> A*B
-push(v) --> A*B
-push(4) --> C
-v = add(6,4) --> A*B + C
-push(v) --> A*B + C
+The above code evaluates to:  
+push(2)  --> A  
+push(3)  --> B  
+v = mult(2,3) --> A*B  
+push(v) --> A*B  
+push(4) --> C  
+v = add(6,4) --> A*B + C  
+push(v) --> A*B + C  
 
 
 when mult, add or any operation are used, pop(outputstack) is called an appropriate number of times relative to the number of inputs the function requires.
