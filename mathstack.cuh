@@ -201,6 +201,62 @@ void operation(I op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt, Vars<F
 
 
         // Mathematical Operators
+        case ACOS:
+        {
+            value = acos(pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case ACOSH:
+        {
+            value = acosh(pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case ASIN:
+        {
+            value = asin(pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case ASINH:
+        {
+            value = asinh(pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case ATAN:
+        {
+            value = atan(pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case ATAN2:
+        {
+            v1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = atan2(v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value , nt);
+            break;
+        }
+        case ATANH:
+        {
+            value = atanh(pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case CBRT:
+        {
+            value = cbrt(pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case CEIL:
+        {
+            value = ceil(pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
         case SIN:
         {
             value = sin(pop_t(outputstack,o_stackidx,o_stacksize,nt));
@@ -264,10 +320,8 @@ F* valuestack, I valuestacksize, F* outputstack, I outputstacksize, L tid, I nt,
         }
     }
 
-
-    return 0.0;
-
-
+    // Return the final result from the outputstack
+    return outputstack[tid];
 }
 
 
@@ -277,7 +331,7 @@ __device__
 F evaluateStackExpr(I* stack, I stacksize, I* opstack, I opstacksize,
 F* valuestack, I valuestacksize, F* outputstack, I outputstacksize, L tid, I nt ) {
     Vars<F> Variables;
-    evaluateStackExpr(stack, stacksize, opstack, opstacksize,
+    return evaluateStackExpr(stack, stacksize, opstack, opstacksize,
         valuestack, valuestacksize, outputstack, outputstacksize, tid, nt, Variables);
 }
 
