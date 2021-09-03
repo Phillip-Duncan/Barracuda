@@ -52,7 +52,13 @@ enum OPCODES {
     LDDT, LDDX, LDDY, LDDZ,
 
     // Receive/Store variable opcodes
-    RCA = 0x16C8,
+    RCA = 0x16C8, RCB, RCC,
+    RCD, RCE, RCF, RCG, RCH,
+    RCI, RCJ, RCK, RCL, RCM,
+    RCN, RCO, RCP, RCQ, RCR,
+    RCS, RCT, RCU, RCV, RCW,
+    RCX, RCY, RCZ,
+    RCDT, RCDX, RCDY, RCDZ,
 };
 
 template<class F>
@@ -295,6 +301,300 @@ void operation(LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt, Vars<
         case LDB:
         {
             push_t(outputstack, o_stackidx, o_stacksize , variables.b, nt);
+            break;
+        }
+        case LDC:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.c, nt);
+            break;
+        }
+        case LDD:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.d, nt);
+            break;
+        }
+        case LDE:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.e, nt);
+            break;
+        }
+        case LDF:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.f, nt);
+            break;
+        }
+        case LDG:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.g, nt);
+            break;
+        }
+        case LDH:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.h, nt);
+            break;
+        }
+        case LDI:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.i, nt);
+            break;
+        }
+        case LDJ:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.j, nt);
+            break;
+        }
+        case LDK:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.k, nt);
+            break;
+        }
+        case LDL:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.l, nt);
+            break;
+        }
+        case LDM:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.m, nt);
+            break;
+        }
+        case LDN:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.n, nt);
+            break;
+        }
+        case LDO:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.o, nt);
+            break;
+        }
+        case LDP:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.p, nt);
+            break;
+        }
+        case LDQ:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.q, nt);
+            break;
+        }
+        case LDR:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.r, nt);
+            break;
+        }
+        case LDS:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.s, nt);
+            break;
+        }
+        case LDT:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.t, nt);
+            break;
+        }
+        case LDU:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.u, nt);
+            break;
+        }
+        case LDV:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.v, nt);
+            break;
+        }
+        case LDW:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.w, nt);
+            break;
+        }
+        case LDX:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.x, nt);
+            break;
+        }
+        case LDY:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.y, nt);
+            break;
+        }
+        case LDZ:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.z, nt);
+            break;
+        }
+        case LDDT:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.dt, nt);
+            break;
+        }
+        case LDDX:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.dx, nt);
+            break;
+        }
+        case LDDY:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.dy, nt);
+            break;
+        }
+        case LDDZ:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.dz, nt);
+            break;
+        }
+
+
+
+        // Receive/Store Variable Operations
+        case RCA:
+        {
+            variables.a = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCB:
+        {
+            variables.b = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCC:
+        {
+            variables.c = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCD:
+        {
+            variables.d = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCE:
+        {
+            variables.e = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCF:
+        {
+            variables.f = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCG:
+        {
+            variables.g = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCH:
+        {
+            variables.h = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCI:
+        {
+            variables.i = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCJ:
+        {
+            variables.j = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCK:
+        {
+            variables.k = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCL:
+        {
+            variables.l = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCM:
+        {
+            variables.m = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCN:
+        {
+            variables.n = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCO:
+        {
+            variables.o = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCP:
+        {
+            variables.p = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCQ:
+        {
+            variables.q = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCR:
+        {
+            variables.r = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCS:
+        {
+            variables.s = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCT:
+        {
+            variables.t = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCU:
+        {
+            variables.u = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCV:
+        {
+            variables.v = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCW:
+        {
+            variables.w = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCX:
+        {
+            variables.x = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCY:
+        {
+            variables.y = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCZ:
+        {
+            variables.z = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCDT:
+        {
+            variables.dt = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCDX:
+        {
+            variables.dx = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCDY:
+        {
+            variables.dy = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            break;
+        }
+        case RCDZ:
+        {
+            variables.dz = pop_t(outputstack, o_stackidx, o_stacksize, nt);
             break;
         }
     }
