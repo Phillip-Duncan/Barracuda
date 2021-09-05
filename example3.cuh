@@ -1,5 +1,5 @@
-#ifndef _EXAMPLE2_CUH
-#define _EXAMPLE2_CUH
+#ifndef _EXAMPLE3_CUH
+#define _EXAMPLE3_CUH
 
 #include "mathstack.cuh"
 #include <stdio.h>
@@ -8,9 +8,15 @@
 #include <vector>
 #include <chrono>
 
+template<class F>
+__device__
+F sinhcos(F x) {
+    return sinh(x)*cos(x);
+}
+
 template<class I, class F, class LI>
 __global__ 
-void example2_kernel(I* stack, I stacksize, LI* opstack, LI opstacksize,
+void example3_kernel(I* stack, I stacksize, LI* opstack, LI opstacksize,
     F* valuestack, I valuestacksize, F* outputstack, I outputstacksize, I Nthreads) 
 {
     I s_size    = stacksize;
@@ -21,16 +27,11 @@ void example2_kernel(I* stack, I stacksize, LI* opstack, LI opstacksize,
     unsigned int tid = (blockIdx.x * blockDim.y) + (blockIdx.y * gridDim.x * blockDim.y) + threadIdx.y;
 
     Vars<F> Variables;
-    Variables.a = 1.569492;
-    Variables.b = 1.5;
 
-    F (*sin_ptr)(F) = &sin;
-    F (*atan2_ptr)(F,F) = &atan2;
-    //opstack[0] = (LI)sin_ptr;
-    if(tid==0) {
-        printf("sin function addr:   %ld\n",sin_ptr);
-        printf("atan2 function addr: %ld\n",atan2_ptr);
-    }
+    F (*sinhcos_ptr)(F) = &sinhcos;
+    if(tid==0) 
+        printf("sinhcos function addr:   %ld\n",sinhcos_ptr);
+
     for(int i=0;i<1;i++) {
         F test = evaluateStackExpr(stack,s_size,opstack,op_size,
             valuestack, v_size, outputstack, ou_size, tid, Nthreads, Variables);

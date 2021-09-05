@@ -8,7 +8,6 @@
 #include <vector>
 #include <chrono>
 
-
 template<class I, class F>
 __global__ 
 void example1_kernel(I* stack, I stacksize, I* opstack, I opstacksize,

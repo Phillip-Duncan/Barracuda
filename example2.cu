@@ -1,8 +1,15 @@
+/**
+ * @file example2.cu
+ * @author Phillip Duncan (phillip.duncan-gelder@pg.canterbury.ac.nz)
+ * @brief Function pointers example
+ * @version 0.1
+ * @date 2021-09-05
+ * 
+ * @copyright Copyright (c) 2021
+ * 
+ */
+
 #include "example2.cuh"
-
-
-
-
 
 int main() 
 {
@@ -13,7 +20,7 @@ int main()
 
 
     float values[3] = {5,6,10};
-    long ops[7] = {16128,0x3CE,0x12FD,0x3CE,0x12FD,0x7E3,0x3CC};
+    long ops[7] = {79232,0x3CE,0x12FD,0x3CE,0x12FD,0x7E3,0x3CC};
     int stack[10] = {-2,0,0,0,0,0,0,1,1,1};
     float output[6*threads*blocks] =   {0};
 
