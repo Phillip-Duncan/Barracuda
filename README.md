@@ -45,3 +45,5 @@ when mult, add or any operation are used, pop(outputstack) is called an appropri
 example1: Simple example with 256 threads, 256 blocks repeating an iteration 50,000 times (1000 loops within each kernel instance and 50 instances of the kernel itself) of the expression { 10/(sin(6+5)\*1.5\*1.5) }, or in RPN notation { 10 6 5 + sin 1.5 \* 1.5 \*  / }.
 
 example2: Extension of example 1 but using the function pointer of atan2 as the final operation rather than the divide (and only looping over a single iteration). RPN notation of this expr is { 10 6 5 + sin 1.5 \* 1.5 \*  atan2 }.
+
+example2: Complex example solving an integral of the user-defined function sinh(x)cos(x) between [0,pi], with a maxstep of 1000, and desired accuracy of 0.0001.
