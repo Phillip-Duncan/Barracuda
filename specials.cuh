@@ -52,7 +52,7 @@
  */
 template<class I, class F, class LI>
 __device__
-F romberg(I max_steps, F acc, I functype, LI function, F a, F b,
+inline F romberg(I max_steps, F acc, I functype, LI function, F a, F b,
     F* outputstack, I &o_stackidx, I &o_stacksize, I nt) {
     F R1[MSTACK_SPECIALS_MMAXSTEP], R2[MSTACK_SPECIALS_MMAXSTEP]; // buffers
     F *Rp = &R1[0], *Rc = &R2[0]; // Rp is previous row, Rc is current row
@@ -134,7 +134,7 @@ F romberg(I max_steps, F acc, I functype, LI function, F a, F b,
 
 template<class I, class F, class LI>
 __device__
-F integrate(I intmethod, I maxstep, F accuracy, I functype, LI function, F llim, F ulim,
+inline F integrate(I intmethod, I maxstep, F accuracy, I functype, LI function, F llim, F ulim,
             F* outputstack, I &o_stackidx, I &o_stacksize, I nt) {
     F value;
     if (maxstep > MSTACK_SPECIALS_MMAXSTEP) {

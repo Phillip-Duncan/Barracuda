@@ -14,7 +14,7 @@
 
 //forward declaration
 template<class I, class F, class LI>
-__device__ F integrate(I intmethod, I maxstep, F accuracy, I functype, LI function, F llim, F ulim,
+inline __device__ F integrate(I intmethod, I maxstep, F accuracy, I functype, LI function, F llim, F ulim,
             F* outputstack, I &o_stackidx, I &o_stacksize, I nt);
 
 enum OPCODES {
@@ -94,7 +94,7 @@ struct Vars {
 
 template<class U, class I>
 __device__
-U pop(U* stack, I &stackidx, I &stacksize) {
+inline U pop(U* stack, I &stackidx, I &stacksize) {
     if(stacksize>0) {
         stacksize = stacksize-1;
         stackidx = stackidx-1;
@@ -108,7 +108,7 @@ U pop(U* stack, I &stackidx, I &stacksize) {
 
 template<class U, class I>
 __device__
-U pop_t(U* stack, I &stackidx, I &stacksize, I nt) {
+inline U pop_t(U* stack, I &stackidx, I &stacksize, I nt) {
     if(stacksize>0) {
         stacksize = stacksize-1;
         stackidx = stackidx-nt;
@@ -121,7 +121,7 @@ U pop_t(U* stack, I &stackidx, I &stacksize, I nt) {
 
 template<class U, class I>
 __device__
-void push(U* stack, I &stackidx, I &stacksize, U value) {
+inline void push(U* stack, I &stackidx, I &stacksize, U value) {
     stack[stackidx] = value;
     stacksize = stacksize+1;
     stackidx = stackidx+1;
@@ -129,7 +129,7 @@ void push(U* stack, I &stackidx, I &stacksize, U value) {
 
 template<class U, class I>
 __device__
-void push_t(U* stack, I &stackidx, I &stacksize, U value, I nt) {
+inline void push_t(U* stack, I &stackidx, I &stacksize, U value, I nt) {
     stack[stackidx] = value;
     stacksize = stacksize+1;
     stackidx = stackidx+nt;
@@ -152,7 +152,7 @@ void push_t(U* stack, I &stackidx, I &stacksize, U value, I nt) {
  */
 template<class F, class I, class LI>
 __device__
-void operation(LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode, Vars<F> &variables) {
+inline void operation(LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode, Vars<F> &variables) {
     F value, v1, v2;
     switch(op) {
         // Null operation
@@ -664,7 +664,7 @@ void operation(LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mod
 // Overloaded normal operation function for no variables provided, just create an empty struct and pass in.
 template<class F, class I, class LI>
 __device__
-void operation(LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode) {
+inline void operation(LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode) {
     Vars<F> variables;
     operation(op, outputstack, o_stackidx, o_stacksize, nt, mode, variables);
 }
@@ -674,7 +674,7 @@ void operation(LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mod
 #if MSTACK_UNSAFE==1
 template<class F, class I, class LI>
 __device__
-void operation(I type, LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode, Vars<F> &variables) {
+inline void operation(I type, LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode, Vars<F> &variables) {
     if (op==OPNULL)
         return;
     I nargs = abs(type);
@@ -786,7 +786,7 @@ void operation(I type, LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I n
 // Overloaded function-pointer operation function for no variables provided, just create an empty struct and pass in.
 template<class F, class I, class LI>
 __device__
-void operation(I type, LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode) {
+inline void operation(I type, LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode) {
     Vars<F> variables;
     operation(type, op, outputstack, o_stackidx, o_stacksize, nt, mode, variables);
 }
