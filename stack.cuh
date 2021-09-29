@@ -61,7 +61,14 @@ enum OPCODES {
     LDN, LDO, LDP, LDQ, LDR,
     LDS, LDT, LDU, LDV, LDW,
     LDX, LDY, LDZ,
-    LDDT, LDDX, LDDY, LDDZ,
+    LDDX, LDDY, LDDZ,
+
+    LDDT, LDA0, LDB0, LDC0,
+    LDD0, LDE0, LDF0, LDG0, LDH0,
+    LDI0, LDJ0, LDK0, LDL0, LDM0,
+    LDN0, LDO0, LDP0, LDQ0, LDR0,
+    LDS0, LDT0, LDU0, LDV0, LDW0,
+    LDX0, LDY0, LDZ0,
 
     // Receive/Store variable opcodes
     RCA = 0x16C8, RCB, RCC,
@@ -70,26 +77,33 @@ enum OPCODES {
     RCN, RCO, RCP, RCQ, RCR,
     RCS, RCT, RCU, RCV, RCW,
     RCX, RCY, RCZ,
-    RCDT, RCDX, RCDY, RCDZ,
+    RCDX, RCDY, RCDZ, RCDT
 };
 
 template<class F>
 struct Vars {
-    __host__ __device__ Vars(): a(0),b(0),c(0),
-    d(0),e(0),f(0),g(0),h(0),
-    i(0),j(0),k(0),l(0),m(0),
-    n(0),o(0),p(0),q(0),r(0),
-    s(0),t(0),u(0),v(0),w(0),
-    x(0),y(0),z(0),
-    dt(0),dx(0),dy(0),dz(0) { }
-
-    F a;F b;F c;F d;F e;F f;
-    F g;F h;F i;F j;F k;F l;
-    F m;F n;F o;F p;F q;F r;
-    F s;F t;F u;F v;F w;F x;
-    F y;F z;
+    __host__ __device__ Vars(): 
     
-    F dt;F dx;F dy;F dz;
+    a(0),b(0),c(0),d(0),e(0),
+    f(0),g(0),h(0),i(0),j(0),
+    k(0),l(0),m(0),n(0),o(0),
+    p(0),q(0),r(0),s(0),t(0),
+    u(0),v(0),w(0),x(0),y(0),
+    z(0),dx(0),dy(0),dz(0),
+    
+    dt(0),x0(0),y0(0),z0(0) { }
+
+    // LD and RC capable variables
+    F a,b,c,d,e,f,g,h,
+    i,j,k,l,m,n,o,p,q,
+    r,s,t,u,v,w,x,y,z,
+    dx,dy,dz;
+
+    // LD but NON-RC variables
+    F dt,a0,b0,c0,d0,e0,
+    f0,g0,h0,i0,j0,k0,l0,
+    m0,n0,o0,p0,q0,r0,s0,
+    t0,u0,v0,w0,x0,y0,z0;
 };
 
 template<class U, class I>
@@ -483,11 +497,6 @@ inline void operation(LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt
             push_t(outputstack, o_stackidx, o_stacksize , variables.z, nt);
             break;
         }
-        case LDDT:
-        {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.dt, nt);
-            break;
-        }
         case LDDX:
         {
             push_t(outputstack, o_stackidx, o_stacksize , variables.dx, nt);
@@ -501,6 +510,141 @@ inline void operation(LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt
         case LDDZ:
         {
             push_t(outputstack, o_stackidx, o_stacksize , variables.dz, nt);
+            break;
+        }
+        case LDDT:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.dt, nt);
+            break;
+        }
+        case LDA0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.a0, nt);
+            break;
+        }  
+        case LDB0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.b0, nt);
+            break;
+        }
+        case LDC0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.c0, nt);
+            break;
+        }
+        case LDD0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.d0, nt);
+            break;
+        }
+        case LDE0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.e0, nt);
+            break;
+        }
+        case LDF0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.f0, nt);
+            break;
+        }
+        case LDG0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.g0, nt);
+            break;
+        }
+        case LDH0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.h0, nt);
+            break;
+        }
+        case LDI0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.i0, nt);
+            break;
+        }
+        case LDJ0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.j0, nt);
+            break;
+        }
+        case LDK0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.k0, nt);
+            break;
+        }
+        case LDL0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.l0, nt);
+            break;
+        }
+        case LDM0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.m0, nt);
+            break;
+        }
+        case LDN0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.n0, nt);
+            break;
+        }
+        case LDO0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.o0, nt);
+            break;
+        }
+        case LDP0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.p0, nt);
+            break;
+        }
+        case LDQ0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.q0, nt);
+            break;
+        }
+        case LDR0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.r0, nt);
+            break;
+        }
+        case LDS0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.s0, nt);
+            break;
+        }
+        case LDT0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.t0, nt);
+            break;
+        }
+        case LDU0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.u0, nt);
+            break;
+        }
+        case LDV0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.v0, nt);
+            break;
+        }
+        case LDW0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.w0, nt);
+            break;
+        }
+        case LDX0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.x0, nt);
+            break;
+        }
+        case LDY0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.y0, nt);
+            break;
+        }
+        case LDZ0:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.z0, nt);
             break;
         }
 
@@ -637,11 +781,6 @@ inline void operation(LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt
             variables.z = pop_t(outputstack, o_stackidx, o_stacksize, nt);
             break;
         }
-        case RCDT:
-        {
-            variables.dt = pop_t(outputstack, o_stackidx, o_stacksize, nt);
-            break;
-        }
         case RCDX:
         {
             variables.dx = pop_t(outputstack, o_stackidx, o_stacksize, nt);
@@ -657,6 +796,11 @@ inline void operation(LI op, F* outputstack, I &o_stackidx, I &o_stacksize, I nt
             variables.dz = pop_t(outputstack, o_stackidx, o_stacksize, nt);
             break;
         }
+        //case RCDT:
+        //{
+        //    variables.dt = pop_t(outputstack, o_stackidx, o_stacksize, nt);
+        //    break;
+        //}
     }
 }
 
