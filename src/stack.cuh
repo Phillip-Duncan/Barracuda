@@ -26,6 +26,7 @@ enum OPCODES {
     ADD = 0x3CC, SUB, MUL,
     DIV, AND, NAND, OR, NOR,
     XOR, NOT, INC, DEC, SWAP,
+    DUP, OVER, LSHIFT, RSHIFT, 
 
 
     // Mathematical operator opcodes 
@@ -179,6 +180,7 @@ template<class F, class LF, class I, class LI>
 __device__
 inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode, Vars<F> &variables) {
     F value, v1, v2;
+    LF lvalue, lv1, lv2;
     switch(op) {
         // Null operation
         case OPNULL:
@@ -220,58 +222,88 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         }
         case AND: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (F)((I)pop_t(outputstack,o_stackidx,o_stacksize,nt) & 
+            push_t(outputstack,o_stackidx,o_stacksize, (LF)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt) & 
             (I)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case NAND: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (F)!((I)pop_t(outputstack,o_stackidx,o_stacksize,nt) & 
+            push_t(outputstack,o_stackidx,o_stacksize, (LF)!((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt) & 
             (I)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case OR: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (F)((I)pop_t(outputstack,o_stackidx,o_stacksize,nt) | 
+            push_t(outputstack,o_stackidx,o_stacksize, (LF)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt) | 
             (I)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case NOR: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (F)!((I)pop_t(outputstack,o_stackidx,o_stacksize,nt) | 
+            push_t(outputstack,o_stackidx,o_stacksize, (LF)!((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt) | 
             (I)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case XOR: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (F)((I)pop_t(outputstack,o_stackidx,o_stacksize,nt) ^ 
+            push_t(outputstack,o_stackidx,o_stacksize, (LF)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt) ^ 
             (I)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case NOT: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (F)!((I)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx,o_stacksize, (LF)!((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case INC:
         {
-            value = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            push_t(outputstack,o_stackidx,o_stacksize, value++, nt);
+            value = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt)+1;
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
             break;
         }
         case DEC:
         {
-            value = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            push_t(outputstack,o_stackidx,o_stacksize, value--, nt);
+            value = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt)-1;
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
             break;
         }
         case SWAP: 
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
             push_t(outputstack,o_stackidx,o_stacksize, v1 , nt);
             push_t(outputstack,o_stackidx,o_stacksize, v2 , nt);
             break;
+        }
+        case DUP: 
+        {
+            lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            push_t(outputstack,o_stackidx,o_stacksize, v1 , nt);
+            push_t(outputstack,o_stackidx,o_stacksize, v1 , nt);
+            break;
+        }
+        case OVER: 
+        {
+            lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            push_t(outputstack,o_stackidx,o_stacksize, v2 , nt);
+            push_t(outputstack,o_stackidx,o_stacksize, v1 , nt);
+            push_t(outputstack,o_stackidx,o_stacksize, v2 , nt);
+            break;
+        }
+        case LSHIFT:
+        {
+            lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            lvalue = (LF)((LI)lv2 << (LI)lv1);
+            push_t(outputstack,o_stackidx,o_stacksize, lvalue , nt);
+        }
+        case RSHIFT:
+        {
+            lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            lvalue = (LF)((LI)lv2 >> (LI)lv1);
+            push_t(outputstack,o_stackidx,o_stacksize, lvalue , nt);
         }
 
 
@@ -333,9 +365,462 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
             push_t(outputstack,o_stackidx,o_stacksize, value, nt);
             break;
         }
+        case CPYSGN:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = copysign(v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case COS:
+        {
+            value = cos((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case COSH:
+        {
+            value = cosh((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case COSPI:
+        {
+            value = cospi((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case BESI0:
+        {
+            value = cyl_bessel_i0((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case BESI1:
+        {
+            value = cyl_bessel_i1((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
         case ERF:
         {
             value = erf((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case ERFC:
+        {
+            value = erfc((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case ERFCI:
+        {
+            value = erfcinv((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case ERFCX:
+        {
+            value = erfcx((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case ERFI:
+        {
+            value = erfinv((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case EXP:
+        {
+            value = exp((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case EXP10:
+        {
+            value = exp10((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case EXP2:
+        {
+            value = exp2((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case EXPM1:
+        {
+            value = expm1((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case FABS:
+        {
+            value = fabs((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case FDIM:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = fdim(v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case FLOOR:
+        {
+            value = floor((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case FMA:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = fma(v3,v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case FMAX:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = fmax(v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case FMIN:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = fmin(v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case FMOD:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = fmod(v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case FREXP:
+        {
+            I* i_ptr = (I*)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = frexp(v2,i_ptr);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case HYPOT:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = hypot(v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case ILOGB:
+        {
+            value = ilogb((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case ISFIN:
+        {
+            value = isfinite((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case ISINF:
+        {
+            value = isinf((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case ISNAN:
+        {
+            value = isnan((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case BESJ0:
+        {
+            value = j0((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case BESJ1:
+        {
+            value = j1((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case BESJN:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (I)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = jn((I)v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case LDEXP:
+        {
+            v1 = (I)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = ldexp(v2,(I)v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case LGAMMA:
+        {
+            value = lgamma((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case LLRINT:
+        {
+            push_t(outputstack,o_stackidx,o_stacksize, llrint((F)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            break;
+        }
+        case LLROUND:
+        {
+            push_t(outputstack,o_stackidx,o_stacksize, llround((F)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            break;
+        }
+        case LOG:
+        {
+            value = log((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case LOG10:
+        {
+            value = log10((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case LOG1P:
+        {
+            value = log1p((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case LOG2:
+        {
+            value = log2((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case LOGB:
+        {
+            value = logb((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case LRINT:
+        {
+            push_t(outputstack,o_stackidx,o_stacksize, lrint((F)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            break;
+        }
+        case LROUND:
+        {
+            push_t(outputstack,o_stackidx,o_stacksize, lround((F)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            break;
+        }
+        case MAX:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = max(v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case MIN:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = min(v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case MODF:
+        {
+            F* f_ptr = (F*)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = modf(v2,f_ptr);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case NNAN:
+        {
+            char* char_ptr = (char*)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            value = nan(char_ptr);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case NEARINT:
+        {
+            value = nearbyint((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case NXTAFT:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = nextafter(v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case NORM:
+        {
+            double* d_ptr = (double*)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            v2 = (I)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = norm((I)v2,d_ptr);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case NORM3D:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = norm3d(v3,v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case NORM4D:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F v4 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = norm4d(v4,v3,v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case NORMCDF:
+        {
+            value = normcdf((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case NORMCDFINV:
+        {
+            value = normcdfinv((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case POW:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = pow(v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case RCBRT:
+        {
+            value = rcbrt((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case REM:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = remainder(v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case REMQUO:
+        {
+            I* i_ptr = (I*)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = remquo(v2,v1,i_ptr);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case RHYPOT:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = rhypot(v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case RINT:
+        {
+            value = rint((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case RNORM:
+        {
+            double* d_ptr = (double*)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            v2 = (I)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = rnorm((I)v2,d_ptr);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case RNORM3D:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = rnorm3d(v3,v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case RNORM4D:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F v4 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = rnorm4d(v4,v3,v2,v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case ROUND:
+        {
+            value = round((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case RSQRT:
+        {
+            value = rsqrt((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case SCALBLN:
+        {
+            LI liv1 = (LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = scalbln(v2,liv1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case SCALBN:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = scalbn(v2,(I)v1);
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case SGNBIT:
+        {
+            value = signbit((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
             push_t(outputstack,o_stackidx,o_stacksize, value, nt);
             break;
         }
@@ -345,9 +830,65 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
             push_t(outputstack,o_stackidx,o_stacksize, value, nt);
             break;
         }
+        case SINH:
+        {
+            value = sinh((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case SINPI:
+        {
+            value = sinpi((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case SQRT:
+        {
+            value = sqrt((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
         case TAN:
         {
             value = tan((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case TANH:
+        {
+            value = tanh((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case TGAMMA:
+        {
+            value = tgamma((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case TRUNC:
+        {
+            value = trunc((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case BESY0:
+        {
+            value = y0((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case BESY1:
+        {
+            value = y1((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            break;
+        }
+        case BESYN:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v2 = (I)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            value = yn((I)v2,v1);
             push_t(outputstack,o_stackidx,o_stacksize, value, nt);
             break;
         }

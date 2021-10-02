@@ -163,8 +163,8 @@ F* valuestack, I valuestacksize, LF* outputstack, I outputstacksize, L tid, I nt
     I l_valuestackidx     = valuestacksize;
 
     I type;
-    LI op;
-    F value;
+    //LI op;
+    //F value;
     
 
     for (int i=0;i<stacksize;i++) {
