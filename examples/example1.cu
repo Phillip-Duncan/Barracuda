@@ -20,7 +20,7 @@ int main()
 
 
     float values[3] = {5,6,10};
-    int ops[7] = {0x3CF,0x3CE,0x12FD,0x3CE,0x12FD,0x7E3,0x3CC};
+    int ops[7] = {0x3CF,0x3CE,0x12FD,0x3CE,0x12FD,0x7E4,0x3CC};
     int stack[10] = {0,0,0,0,0,0,0,1,1,1};
     float output[6*threads*blocks] =   {0};
 

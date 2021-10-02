@@ -46,4 +46,6 @@ example1: Simple example with 256 threads, 256 blocks repeating an iteration 50,
 
 example2: Extension of example 1 but using the function pointer of atan2 as the final operation rather than the divide (and only looping over a single iteration). RPN notation of this expr is { 10 6 5 + sin 1.5 \* 1.5 \*  atan2 }.
 
-example2: Complex example solving an integral of the user-defined function sinh(x)cos(x) between [0,pi], with a maxstep of 1000, and desired accuracy of 0.0001.
+example3: Complex example solving an integral of the user-defined function sinh(x)cos(x) between [0,pi], with a maxstep of 1000, and desired accuracy of 0.0001.
+
+example4: For loop example, instructions 2 and 3 define the respective beginning and end of a FOR, FOREND statement, two values from the outputstack are popped to determine the initial index (i) and termination index (imax).

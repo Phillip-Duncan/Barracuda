@@ -20,7 +20,7 @@ int main()
 
 
     float values[3] = {5,6,10};
-    long ops[7] = {1055456,0x3CE,0x12FD,0x3CE,0x12FD,0x7E3,0x3CC};
+    long ops[7] = {1056656,0x3CE,0x12FD,0x3CE,0x12FD,0x7E4,0x3CC};
     int stack[10] = {-2,0,0,0,0,0,0,1,1,1};
     double output[6*threads*blocks] =   {0};
 
