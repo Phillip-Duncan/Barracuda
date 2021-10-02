@@ -95,34 +95,32 @@ L tid, I nt, Vars<F> &variables, I r_depth )
                 if (t==3)
                     break;
 
-                if(t<=0)
+                else if(t==0) {
                     o_idx_reset += 1;
-
-                if(t==1)
+                    op = pop(opstack,opstackidx,opstacksize);
+                    operation<F>(op, outputstack, outputstackidx, outputstacksize, nt, 0, variables);
+                    continue;
+                }
+                else if (t<0) {
+                    #if MSTACK_UNSAFE==1
+                    op = pop(opstack,opstackidx,opstacksize);
+                    operation<F>(type, op, outputstack, outputstackidx, outputstacksize, nt, 0, variables);
+                    #else
+                    #endif
+                    continue;
+                }
+                else if(t==1) {
+                    value = pop(valuestack,valuestackidx,valuestacksize);
+                    push_t(outputstack, outputstackidx, outputstacksize ,value, nt);
                     v_idx_reset += 1;
-
+                    continue;
+                }
                 #if(MSTACK_NESTED_LOOPS_ALLOWED==1)
-                    eval(t, stack, stackidx, stacksize, opstack, opstackidx, opstacksize,
-                        valuestack, valuestackidx, valuestacksize, outputstack,
-                        outputstackidx,outputstacksize, tid, nt, variables,r_depth+1);
-                #else
-                    // Is an ordinary operation
-                    if (t==0) {
-                            op = pop(opstack,opstackidx,opstacksize);
-                            operation<F>(op, outputstack, outputstackidx, outputstacksize, nt, 0, variables);
-                    }
-                    // Is a value
-                    if (t==1) {
-                        value = pop(valuestack,valuestackidx,valuestacksize);
-                        push_t(outputstack, outputstackidx, outputstacksize ,value, nt);
-                    }
-                    // function pointer operation
-                    if (t<0) {
-                        #if MSTACK_UNSAFE==1
-                        op = pop(opstack,opstackidx,opstacksize);
-                        operation<F>(type, op, outputstack, outputstackidx, outputstacksize, nt, 0, variables);
-                        #else
-                        #endif
+                    else if(t==2) {
+                        eval(t, stack, stackidx, stacksize, opstack, opstackidx, opstacksize,
+                            valuestack, valuestackidx, valuestacksize, outputstack,
+                            outputstackidx,outputstacksize, tid, nt, variables,r_depth+1);
+                        continue;
                     }
                 #endif
             }

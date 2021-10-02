@@ -7,6 +7,12 @@ project(MathStack VERSION 1.0)
 enable_language(CUDA)
 find_package(CUDA)
 
+add_definitions(-DMSTACK_SPECIALS=0
+-DMSTACK_UNSAFE=1
+-DMSTACK_NESTED_LOOPS_ALLOWED=1
+-DMSTACK_MAX_RECURSION_DEPTH=4)
+
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${COMPILE_DEFINITIONS} -Xcompiler -fPIC -O3 -use_fast_math")
 
 add_subdirectory(examples)
 
