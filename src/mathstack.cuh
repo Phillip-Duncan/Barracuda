@@ -49,7 +49,7 @@ L tid, I nt, Vars<F> &variables, I r_depth )
     if (r_depth>MSTACK_MAX_RECURSION_DEPTH) {
         return;
     }
-
+    
     // Is an ordinary operation
     if (type==0) {
         op = pop(opstack,opstackidx,opstacksize);
@@ -57,23 +57,33 @@ L tid, I nt, Vars<F> &variables, I r_depth )
         return;
     }
     // Is a value
-    if (type==1) {
+    else if (type==1) {
         value = pop(valuestack,valuestackidx,valuestacksize);
         push_t(outputstack, outputstackidx, outputstacksize ,value, nt);
         return;
     }
+    // Goto statement
+    else if (type==2) {
+        value = pop(outputstack,outputstackidx,outputstacksize);
+        // Make sure goto is bounded between 0 and alloc(stack), otherwise just go to end
+        value = value >= 0 ? value : 0;
+        value = value <= (variables.PC + stackidx) ? value : variables.PC + stackidx;
+        // Adjust stacksize and stackidx to "goto" value.
+        stacksize = (I)(variables.PC + stackidx - value);
+        stackidx  = (I)(variables.PC + stackidx - value);
+        // Adjust program counter to value.
+        variables.PC = value;
+    }
     // function pointer operation
-    if (type<0) {
-        #if MSTACK_UNSAFE==1
+    #if MSTACK_UNSAFE==1
+        else if (type<0) {
             op = pop(opstack,opstackidx,opstacksize);
             operation<F>(type, op, outputstack, outputstackidx, outputstacksize, nt, 0, variables);
             return;
-        #else
-            return;
-        #endif
-    }
+        }
+    #endif
 
-    if (type==2) {
+    else if (type==99) {
         I i_idx_reset = 0;
         I o_idx_reset = 0;
         I v_idx_reset = 0;
@@ -92,7 +102,7 @@ L tid, I nt, Vars<F> &variables, I r_depth )
                 i_idx_reset += 1;
 
 
-                if (t==3)
+                if (t==100)
                     break;
 
                 else if(t==0) {
@@ -116,7 +126,7 @@ L tid, I nt, Vars<F> &variables, I r_depth )
                     continue;
                 }
                 #if(MSTACK_NESTED_LOOPS_ALLOWED==1)
-                    else if(t==2) {
+                    else if(t==99) {
                         eval(t, stack, stackidx, stacksize, opstack, opstackidx, opstacksize,
                             valuestack, valuestackidx, valuestacksize, outputstack,
                             outputstackidx,outputstacksize, tid, nt, variables,r_depth+1);
@@ -161,14 +171,17 @@ F* valuestack, I valuestacksize, LF* outputstack, I outputstacksize, L tid, I nt
     I l_valuestackidx     = valuestacksize;
 
     I type;
-    //LI op;
-    //F value;
-    
 
-    for (int i=0;i<stacksize;i++) {
+    variables.TID = tid;
+
+    //for (int i=0;i<stacksize;i++) {
+    while (l_stackidx>0) {
 
         // "Pop type from stack"
         type = pop(stack,l_stackidx,l_stacksize);
+
+        // Advance program counter
+        variables.PC += 1;
         
         eval(type, stack, l_stackidx, l_stacksize, opstack, l_opstackidx, l_opstacksize, valuestack, 
                 l_valuestackidx, l_valuestacksize, outputstack, l_outputstackidx, l_outputstacksize,

@@ -20,15 +20,15 @@ int main()
 
 
     float values[4] = {1,100000,0,5};
-    int ops[1] = {0x3CC};
-    int stack[7] = {3,0,1,2,1,1,1};
+    long ops[1] = {0x3CC};
+    int stack[7] = {100,0,1,99,1,1,1};
     float output[6*threads*blocks] =   {0};
 
     // Allocate some memory for stack expressions
     int* stack_dev = NULL;
     int stacksize = 7;
-    int* opstack_dev = NULL;
-    int opstacksize = 1;
+    long* opstack_dev = NULL;
+    long opstacksize = 1;
     float* valuesstack_dev = NULL;
     int valuestacksize = 4;
     float* outputstack_dev = NULL;
@@ -37,8 +37,8 @@ int main()
     cudaMalloc((void**)&stack_dev,stacksize*sizeof(int));
     cudaMemcpy(stack_dev,stack,stacksize*sizeof(int),cudaMemcpyHostToDevice);
 
-    cudaMalloc((void**)&opstack_dev,opstacksize*sizeof(int));
-    cudaMemcpy(opstack_dev,ops,opstacksize*sizeof(int),cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&opstack_dev,opstacksize*sizeof(long));
+    cudaMemcpy(opstack_dev,ops,opstacksize*sizeof(long),cudaMemcpyHostToDevice);
 
     cudaMalloc((void**)&valuesstack_dev,valuestacksize*sizeof(float));
     cudaMemcpy(valuesstack_dev,values,valuestacksize*sizeof(float),cudaMemcpyHostToDevice);

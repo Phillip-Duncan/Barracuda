@@ -26,7 +26,12 @@ enum OPCODES {
     ADD = 0x3CC, SUB, MUL,
     DIV, AND, NAND, OR, NOR,
     XOR, NOT, INC, DEC, SWAP,
-    DUP, OVER, LSHIFT, RSHIFT, 
+    DUP, OVER, DROP, LSHIFT,
+    RSHIFT, 
+
+    // Basic-extended opcodes
+    MALLOC, FREE, MEMCPY, MEMSET,
+    READ, WRITE,
 
 
     // Mathematical operator opcodes 
@@ -72,6 +77,9 @@ enum OPCODES {
     LDS0, LDT0, LDU0, LDV0, LDW0,
     LDX0, LDY0, LDZ0,
 
+    // Load internal vars
+    LDPC, LDTID,
+
     // Receive/Store variable opcodes
     RCA = 0x16C8, RCB, RCC,
     RCD, RCE, RCF, RCG, RCH,
@@ -93,7 +101,15 @@ struct __align__(256) Vars {
     u(0),v(0),w(0),x(0),y(0),
     z(0),dx(0),dy(0),dz(0),
     
-    dt(0),x0(0),y0(0),z0(0) { }
+    dt(0),a0(0),b0(0),c0(0),
+    d0(0),e0(0),f0(0),g0(0),
+    h0(0),i0(0),j0(0),k0(0),
+    l0(0),m0(0),n0(0),o0(0),
+    p0(0),q0(0),r0(0),s0(0),
+    t0(0),u0(0),v0(0),w0(0),
+    x0(0),y0(0),z0(0),
+
+    PC(0), TID(0) { }
 
     // LD and RC capable variables
     F a,b,c,d,e,f,g,h,
@@ -106,6 +122,9 @@ struct __align__(256) Vars {
     f0,g0,h0,i0,j0,k0,l0,
     m0,n0,o0,p0,q0,r0,s0,
     t0,u0,v0,w0,x0,y0,z0;
+
+    // Internal use only, but can be loaded
+    uint PC, TID;
 };
 
 template<class U, class I>
@@ -291,6 +310,11 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
             push_t(outputstack,o_stackidx,o_stacksize, v2 , nt);
             break;
         }
+        case DROP:
+        {
+            pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            break;
+        }
         case LSHIFT:
         {
             lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
@@ -304,6 +328,46 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
             lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
             lvalue = (LF)((LI)lv2 >> (LI)lv1);
             push_t(outputstack,o_stackidx,o_stacksize, lvalue , nt);
+        }
+        case MALLOC:
+        {
+            F* addr = (F*)malloc(pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, (LI)&addr , nt);
+        }
+        case FREE:
+        {
+            F* addr = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            if(addr!=NULL)
+                free(addr);
+        }
+        case MEMCPY:
+        {
+            LI size     = (LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F* src      = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F* dest     = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            memcpy(dest,src,size);
+        }
+        case MEMSET:
+        {
+            LI size     = (LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F val       = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F* src      = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            memset(src,val,size);
+        }
+        case READ:
+        {
+            F* addr = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            if(addr!=NULL) {
+                value = *addr;
+                push_t(outputstack,o_stackidx,o_stacksize,value, nt);
+            }
+        }
+        case WRITE:
+        {
+            value = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F* addr = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            if(addr!=NULL)
+                *addr = value;
         }
 
 
@@ -1197,6 +1261,16 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         case LDZ0:
         {
             push_t(outputstack, o_stackidx, o_stacksize , variables.z0, nt);
+            break;
+        }
+        case LDPC:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.PC, nt);
+            break;
+        }
+        case LDTID:
+        {
+            push_t(outputstack, o_stackidx, o_stacksize , variables.TID, nt);
             break;
         }
 

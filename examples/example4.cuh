@@ -14,7 +14,7 @@ void example4_kernel(I* stack, I stacksize, LI* opstack, LI opstacksize,
     F* valuestack, I valuestacksize, LF* outputstack, I outputstacksize, I Nthreads) 
 {
     I s_size = stacksize;
-    I op_size = opstacksize;
+    LI op_size = opstacksize;
     I v_size = valuestacksize;
     I ou_size = outputstacksize;
 

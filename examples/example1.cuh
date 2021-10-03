@@ -8,13 +8,13 @@
 #include <vector>
 #include <chrono>
 
-template<class I, class F>
+template<class I, class F, class LI>
 __global__ 
-void example1_kernel(I* stack, I stacksize, I* opstack, I opstacksize,
+void example1_kernel(I* stack, I stacksize, LI* opstack, LI opstacksize,
     F* valuestack, I valuestacksize, F* outputstack, I outputstacksize, I Nthreads) 
 {
     I s_size = stacksize;
-    I op_size = opstacksize;
+    LI op_size = opstacksize;
     I v_size = valuestacksize;
     I ou_size = outputstacksize;
 
