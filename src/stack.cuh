@@ -83,7 +83,7 @@ enum OPCODES {
 };
 
 template<class F>
-struct Vars {
+struct __align__(256) Vars {
     __host__ __device__ Vars(): 
     
     a(0),b(0),c(0),d(0),e(0),
