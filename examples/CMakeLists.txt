@@ -11,3 +11,5 @@ add_executable(example3 example3.cu example3.cuh)
 
 add_executable(example4 example4.cu example4.cuh)
 
+
+add_executable(rule110 rule110.cu rule110.cuh)

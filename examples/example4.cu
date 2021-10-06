@@ -1,9 +1,11 @@
 /**
- * @file example1.cu
+ * @file example4.cu
  * @author Phillip Duncan (phillip.duncan-gelder@pg.canterbury.ac.nz)
- * @brief Simple arithmetic example
- * @version 0.1
- * @date 2021-09-05
+ * @brief Recursive for loop example.
+ * @details Demonstrates that whilst recursion for loops possible, these are probably not a good idea to run,
+ * especially with large threads (will likely not be able to alloc enough stack-size for the stack frames required).
+ * @version 1.0
+ * @date 2021-10-06
  * 
  * @copyright Copyright (c) 2021
  * 
@@ -18,19 +20,27 @@ int main()
     dim3 Grid(blocks,1,1);
     dim3 Block(1,threads,1);
 
+    // Two nested recursive for loops within another for loop. Resultant Sum = 205.
+    // Equivalant to: int a=5; for(int i=0;i<10;i++){for(int j=0;j<10;j++){a++;} for(int k=0;k<10;k++){a++;}}
+    float values[9] = {1,10,0,1,10,0,10,0,5};
+    long ops[2] = {0x3CC,0x3CC};
+    int stack[17] = {100,100,0,1,99,1,1,100,0,1,99,1,1,99,1,1,1};
+    float output[10*threads*blocks] =   {0};
 
-    float values[4] = {1,100000,0,5};
-    long ops[1] = {0x3CC};
-    int stack[7] = {100,0,1,99,1,1,1};
-    float output[6*threads*blocks] =   {0};
+    // Increase max stack frame size (this has to be increased with increasing threads/blocks).
+    cudaError_t stat;
+    size_t current_stack_size;
+    size_t new_stack_size = 1024*8;
+    stat = cudaDeviceSetLimit(cudaLimitStackSize, new_stack_size);
+    std::cout << stat << std::endl;
 
     // Allocate some memory for stack expressions
     int* stack_dev = NULL;
-    int stacksize = 7;
+    int stacksize = 17;
     long* opstack_dev = NULL;
-    long opstacksize = 1;
+    long opstacksize = 2;
     float* valuesstack_dev = NULL;
-    int valuestacksize = 4;
+    int valuestacksize = 9;
     float* outputstack_dev = NULL;
     int outputstacksize = 0;
 

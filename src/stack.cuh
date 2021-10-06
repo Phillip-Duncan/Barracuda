@@ -27,12 +27,12 @@ enum OPCODES {
     DIV, AND, NAND, OR, NOR,
     XOR, NOT, INC, DEC, SWAP,
     DUP, OVER, DROP, LSHIFT,
-    RSHIFT, 
+    RSHIFT,
 
     // Basic-extended opcodes
     MALLOC, FREE, MEMCPY, MEMSET,
-    READ, WRITE,
-
+    READ, WRITE, ADD_P, SUB_P,
+    TERNARY,
 
     // Mathematical operator opcodes 
     // https://docs.nvidia.com/cuda/cuda-math-api/group__CUDA__MATH__DOUBLE.html#group__CUDA__MATH__DOUBLE
@@ -57,6 +57,10 @@ enum OPCODES {
     SINH, SINPI, SQRT, TAN, TANH,
     TGAMMA, TRUNC, BESY0, BESY1,
     BESYN,
+
+    // Sys calls
+    PRINTC = 0xB64, PRINTCT,
+    PRINTF, PRINTFT,
 
     // Specials
     OPINTEGRATE = 0xF30,
@@ -241,37 +245,37 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         }
         case AND: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (LF)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt) & 
-            (I)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx,o_stacksize, (LF)((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) & 
+            (unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case NAND: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (LF)!((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt) & 
-            (I)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx,o_stacksize, (LF)!((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) & 
+            (unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case OR: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (LF)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt) | 
-            (I)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx,o_stacksize, (LF)((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) | 
+            (unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case NOR: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (LF)!((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt) | 
-            (I)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx,o_stacksize, (LF)!((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) | 
+            (unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case XOR: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (LF)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt) ^ 
-            (I)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx,o_stacksize, (LF)((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) ^ 
+            (unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case NOT: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (LF)!((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx,o_stacksize, (LF)!((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case INC:
@@ -290,24 +294,24 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         {
             lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
             lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            push_t(outputstack,o_stackidx,o_stacksize, v1 , nt);
-            push_t(outputstack,o_stackidx,o_stacksize, v2 , nt);
+            push_t(outputstack,o_stackidx,o_stacksize, lv1 , nt);
+            push_t(outputstack,o_stackidx,o_stacksize, lv2 , nt);
             break;
         }
         case DUP: 
         {
             lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            push_t(outputstack,o_stackidx,o_stacksize, v1 , nt);
-            push_t(outputstack,o_stackidx,o_stacksize, v1 , nt);
+            push_t(outputstack,o_stackidx,o_stacksize, lv1 , nt);
+            push_t(outputstack,o_stackidx,o_stacksize, lv1 , nt);
             break;
         }
         case OVER: 
         {
             lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
             lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            push_t(outputstack,o_stackidx,o_stacksize, v2 , nt);
-            push_t(outputstack,o_stackidx,o_stacksize, v1 , nt);
-            push_t(outputstack,o_stackidx,o_stacksize, v2 , nt);
+            push_t(outputstack,o_stackidx,o_stacksize, lv2 , nt);
+            push_t(outputstack,o_stackidx,o_stacksize, lv1 , nt);
+            push_t(outputstack,o_stackidx,o_stacksize, lv2 , nt);
             break;
         }
         case DROP:
@@ -319,26 +323,34 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         {
             lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
             lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            lvalue = (LF)((LI)lv2 << (LI)lv1);
+            lvalue = (LF)((unsigned long)lv2 << (unsigned long)lv1);
             push_t(outputstack,o_stackidx,o_stacksize, lvalue , nt);
+            break;
         }
         case RSHIFT:
         {
             lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
             lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            lvalue = (LF)((LI)lv2 >> (LI)lv1);
+            lvalue = (LF)((unsigned long)lv2 >> (unsigned long)lv1);
             push_t(outputstack,o_stackidx,o_stacksize, lvalue , nt);
+            break;
         }
+
+
+
+        // Memory/Pointers
         case MALLOC:
         {
             F* addr = (F*)malloc(pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, (LI)&addr , nt);
+            push_t(outputstack,o_stackidx,o_stacksize, (LF)(LI)addr , nt);
+            break;
         }
         case FREE:
         {
             F* addr = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             if(addr!=NULL)
                 free(addr);
+            break;
         }
         case MEMCPY:
         {
@@ -346,6 +358,7 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
             F* src      = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             F* dest     = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             memcpy(dest,src,size);
+            break;
         }
         case MEMSET:
         {
@@ -353,6 +366,8 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
             F val       = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             F* src      = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             memset(src,val,size);
+            push_t(outputstack,o_stackidx,o_stacksize,(LF)(LI)src, nt);
+            break;
         }
         case READ:
         {
@@ -361,6 +376,7 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
                 value = *addr;
                 push_t(outputstack,o_stackidx,o_stacksize,value, nt);
             }
+            break;
         }
         case WRITE:
         {
@@ -368,6 +384,31 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
             F* addr = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             if(addr!=NULL)
                 *addr = value;
+            //push_t(outputstack,o_stackidx,o_stacksize,(LF)(LI)addr, nt);
+            break;
+        }
+        case ADD_P: 
+        {         
+            push_t(outputstack,o_stackidx,o_stacksize, (LF)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt)
+            + (LI)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            break;
+        }
+        case SUB_P: 
+        {
+            LI li1 = (LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            LI li2 = (LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            LI val = li2 - li1;
+            push_t(outputstack,o_stackidx,o_stacksize, (LF)val, nt);
+            break;
+        }
+        case TERNARY: 
+        {
+            lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            LF lv3 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            lvalue = (lv3>0) ? lv2:lv1;
+            push_t(outputstack,o_stackidx,o_stacksize, lvalue , nt);
+            break;
         }
 
 
@@ -959,6 +1000,38 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
 
 
 
+        //Syscall operations
+        case PRINTC:
+        {
+            char char_v = (char)(LI)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            printf("%c",char_v);
+            break;
+        }
+        case PRINTCT:
+        {
+            char char_v = (char)(LI)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            LI thread = (LI)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            if (thread==variables.TID)
+                printf("%c",char_v);
+            break;
+        }
+        case PRINTF:
+        {
+            value = (F)(LI)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            printf("%f",value);
+            break;
+        }
+        case PRINTFT:
+        {
+            value = (F)(LI)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            LI thread = (LI)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            if (thread==variables.TID)
+                printf("%f",value);
+            break;
+        }
+
+
+
         // Special operations (if enabled)
         #if MSTACK_SPECIALS==1
             case OPINTEGRATE: 
@@ -1422,11 +1495,6 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
             variables.dz = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
             break;
         }
-        //case RCDT:
-        //{
-        //    variables.dt = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
-        //    break;
-        //}
     }
 }
 

@@ -19,7 +19,7 @@ int main()
     dim3 Block(1,threads,1);
 
     // intmethod, maxsteps, accuracy, functype, function, upperlim, lowerlim
-    float values[7] = {1,1000,0.0001,1,838816,3.141,0}; // 0x7E3
+    float values[7] = {1,1000,0.0001,1,1467264,3.141,0}; // 0x7E3
     long ops[1] = {0xF30};
     int stack[8] = {0,1,1,1,1,1,1,1};
     float output[10*threads*blocks] =   {0};

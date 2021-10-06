@@ -7,7 +7,7 @@ project(MathStack VERSION 1.0)
 enable_language(CUDA)
 find_package(CUDA)
 
-add_definitions(-DMSTACK_SPECIALS=0
+add_definitions(-DMSTACK_SPECIALS=1
 -DMSTACK_UNSAFE=1
 -DMSTACK_NESTED_LOOPS_ALLOWED=1
 -DMSTACK_MAX_RECURSION_DEPTH=4)

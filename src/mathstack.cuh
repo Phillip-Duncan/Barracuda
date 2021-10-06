@@ -41,14 +41,17 @@ template<class I, class F, class LF, class L, class LI>
 __device__
 void eval(I type, I* stack, I &stackidx, I &stacksize, LI* opstack, I &opstackidx, I &opstacksize,
 F* valuestack, I &valuestackidx, I &valuestacksize, LF* outputstack, I &outputstackidx, I &outputstacksize, 
-L tid, I nt, Vars<F> &variables, I r_depth )
+L tid, I nt, Vars<F> &variables, I r_depth, I &i_reset, I &o_reset, I &v_reset )
 {
     LI op;
     F value;
-
     if (r_depth>MSTACK_MAX_RECURSION_DEPTH) {
         return;
     }
+    // Global (loop-recursive) resets for instruction, op, val stack index.
+    i_reset = 0;
+    o_reset = 0;
+    v_reset = 0;
     
     // Is an ordinary operation
     if (type==0) {
@@ -73,6 +76,7 @@ L tid, I nt, Vars<F> &variables, I r_depth )
         stackidx  = (I)(variables.PC + stackidx - value);
         // Adjust program counter to value.
         variables.PC = value;
+        return;
     }
     // function pointer operation
     #if MSTACK_UNSAFE==1
@@ -89,22 +93,22 @@ L tid, I nt, Vars<F> &variables, I r_depth )
         I v_idx_reset = 0;
         I imax;
         I i;
-        imax = pop_t(outputstack, outputstackidx, outputstacksize, nt);
-        i    = pop_t(outputstack, outputstackidx, outputstacksize, nt);
-            
+        imax = (I)pop_t(outputstack, outputstackidx, outputstacksize, nt);
+        i    = (I)pop_t(outputstack, outputstackidx, outputstacksize, nt);
         for(;i<imax;i++){
             i_idx_reset = 0;
             o_idx_reset = 0;
             v_idx_reset = 0;
-            
+
             while(true) {
                 I t = pop(stack,stackidx,stacksize);
                 i_idx_reset += 1;
 
 
                 if (t==100)
+                {
                     break;
-
+                }
                 else if(t==0) {
                     o_idx_reset += 1;
                     op = pop(opstack,opstackidx,opstacksize);
@@ -113,6 +117,7 @@ L tid, I nt, Vars<F> &variables, I r_depth )
                 }
                 else if (t<0) {
                     #if MSTACK_UNSAFE==1
+                    o_idx_reset += 1;
                     op = pop(opstack,opstackidx,opstacksize);
                     operation<F>(type, op, outputstack, outputstackidx, outputstacksize, nt, 0, variables);
                     #else
@@ -129,29 +134,54 @@ L tid, I nt, Vars<F> &variables, I r_depth )
                     else if(t==99) {
                         eval(t, stack, stackidx, stacksize, opstack, opstackidx, opstacksize,
                             valuestack, valuestackidx, valuestacksize, outputstack,
-                            outputstackidx,outputstacksize, tid, nt, variables,r_depth+1);
+                            outputstackidx,outputstacksize, tid, nt, variables,r_depth+1, i_reset, o_reset, v_reset);
+                        // At end of each eval add recursion resets to super() reset total.
+                        i_idx_reset += i_reset;
+                        o_idx_reset += o_reset;
+                        v_idx_reset += v_reset;
                         continue;
                     }
                 #endif
             }
-            // Increment indexes of stacks to loop origin
-            stackidx          += i_idx_reset;
-            stacksize         += i_idx_reset;
-            opstackidx        += o_idx_reset;
-            opstacksize       += o_idx_reset;
-            valuestackidx     += v_idx_reset;
-            valuestacksize    += v_idx_reset;
+
+            // Increment indexes of stacks to loop origin.
+            stackidx          += i_idx_reset;// + i_reset;
+            stacksize         += i_idx_reset;// + i_reset;
+            opstackidx        += o_idx_reset;// + o_reset;
+            opstacksize       += o_idx_reset;// + o_reset;
+            valuestackidx     += v_idx_reset;// + v_reset;
+            valuestacksize    += v_idx_reset;// + v_reset;
         }
-        // Set stack indexes to loop end at termination
-        stackidx          -= i_idx_reset;
-        stacksize         -= i_idx_reset;
-        opstackidx        -= o_idx_reset;
-        opstacksize       -= o_idx_reset;
-        valuestackidx     -= v_idx_reset;
-        valuestacksize    -= v_idx_reset;
+        // Set stack indexes to loop end at termination.
+        stackidx          -= i_idx_reset;// + i_reset;
+        stacksize         -= i_idx_reset;// + i_reset;
+        opstackidx        -= o_idx_reset;// + o_reset;
+        opstacksize       -= o_idx_reset;// + o_reset;
+        valuestackidx     -= v_idx_reset;// + v_reset;
+        valuestacksize    -= v_idx_reset;// + v_reset;
+
+        // Add local idx reset to global idx reset.
+        i_reset += i_idx_reset;
+        o_reset += o_idx_reset;
+        v_reset += v_idx_reset;
+
         return;
     }
 } 
+
+// Overloaded init eval function
+template<class I, class F, class LF, class L, class LI>
+__device__
+void eval(I type, I* stack, I &stackidx, I &stacksize, LI* opstack, I &opstackidx, I &opstacksize,
+F* valuestack, I &valuestackidx, I &valuestacksize, LF* outputstack, I &outputstackidx, I &outputstacksize, 
+L tid, I nt, Vars<F> &variables, I r_depth)
+{
+    static I i=0,o=0,v=0;
+    eval(type, stack, stackidx, stacksize, opstack, opstackidx, opstacksize,
+                            valuestack, valuestackidx, valuestacksize, outputstack,
+                            outputstackidx,outputstacksize, tid, nt, variables,r_depth,i,o,v);
+    return;
+}
 
 template<class I, class F, class LF, class L, class LI>
 __device__
@@ -182,7 +212,6 @@ F* valuestack, I valuestacksize, LF* outputstack, I outputstacksize, L tid, I nt
 
         // Advance program counter
         variables.PC += 1;
-        
         eval(type, stack, l_stackidx, l_stacksize, opstack, l_opstackidx, l_opstacksize, valuestack, 
                 l_valuestackidx, l_valuestacksize, outputstack, l_outputstackidx, l_outputstacksize,
                 tid, nt, variables, 0);
