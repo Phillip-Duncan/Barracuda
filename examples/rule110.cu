@@ -18,7 +18,7 @@ int main()
     dim3 Grid(blocks,1,1);
     dim3 Block(1,threads,1);
 
-    float board_size = 70;
+    float board_size = 50;
     float bs = board_size;
     // 16
     float values[22] = {1,110,1*4,7,1,1*4,

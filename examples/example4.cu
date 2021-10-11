@@ -15,8 +15,8 @@
 
 int main() 
 {
-    int threads = 1;
-    int blocks = 1;
+    int threads = 256;
+    int blocks = 256;
     dim3 Grid(blocks,1,1);
     dim3 Block(1,threads,1);
 
@@ -26,13 +26,6 @@ int main()
     long ops[2] = {0x3CC,0x3CC};
     int stack[17] = {100,100,0,1,99,1,1,100,0,1,99,1,1,99,1,1,1};
     float output[10*threads*blocks] =   {0};
-
-    // Increase max stack frame size (this has to be increased with increasing threads/blocks).
-    cudaError_t stat;
-    size_t current_stack_size;
-    size_t new_stack_size = 1024*8;
-    stat = cudaDeviceSetLimit(cudaLimitStackSize, new_stack_size);
-    std::cout << stat << std::endl;
 
     // Allocate some memory for stack expressions
     int* stack_dev = NULL;
