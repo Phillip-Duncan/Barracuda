@@ -88,6 +88,7 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
         return;
     }
     else if (type==100) {
+        // Compare values of i,imax to see whether loop has ended or continues
         I i = loop_stack[5*(loop_idx-1)+3];
         I imax = loop_stack[5*(loop_idx-1)+4];
         i = i + 1;
@@ -99,10 +100,12 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
         }
         // Otherwise goto start of loop.
         else {
+            // Reset program counter
+            variables.PC = variables.PC + stackidx - loop_stack[5*(loop_idx-1)];
+
+            // Swap indicies/sizes
             stackidx = loop_stack[5*(loop_idx-1)];
             stacksize = loop_stack[5*(loop_idx-1)];
-            variables.PC = variables.PC - loop_stack[5*(loop_idx-1)];
-
             opstackidx = loop_stack[5*(loop_idx-1) + 1];
             opstacksize = loop_stack[5*(loop_idx-1) + 1];
             valuestackidx = loop_stack[5*(loop_idx-1) + 2];
