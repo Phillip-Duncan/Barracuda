@@ -128,7 +128,7 @@ struct __align__(256) Vars {
     t0,u0,v0,w0,x0,y0,z0;
 
     // Internal use only, but can be loaded
-    uint PC, TID;
+    unsigned int PC, TID;
 };
 
 template<class U, class I>
@@ -919,7 +919,7 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         {
             v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            value = scalbn(v2,(I)v1);
+            value = scalbn((double)v2,(I)v1);
             push_t(outputstack,o_stackidx,o_stacksize, value, nt);
             break;
         }
