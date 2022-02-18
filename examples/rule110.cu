@@ -13,8 +13,8 @@
 
 int main() 
 {
-    int threads = 1;
-    int blocks = 1;
+    const int threads = 1;
+    const int blocks = 1;
     dim3 Grid(blocks,1,1);
     dim3 Block(1,threads,1);
 
@@ -24,7 +24,7 @@ int main()
     float values[22] = {1,110,1*4,7,1,1*4,
                         (bs-1),1,1*4,1*4,1,10,32,42,1*4,(bs),0,(bs-2),0,1,(bs-2)*4,(bs)*4};
 
-    long ops[38] = {DROP,DROP,SWAP,WRITE,AND,RSHIFT,SWAP,OVER,SUB_P,OVER,OR,READ,OVER,AND,LSHIFT,SWAP,ADD_P,
+    long long ops[38] = {DROP,DROP,SWAP,WRITE,AND,RSHIFT,SWAP,OVER,SUB_P,OVER,OR,READ,OVER,AND,LSHIFT,SWAP,ADD_P,
                         ADD_P,OVER,OR,READ,ADD_P,OVER,LSHIFT,READ,DUP,PRINTC,DROP,PRINTC,TERNARY,READ,DUP,
                         ADD_P,DUP,WRITE,ADD_P,OVER,MALLOC};
     // 43
@@ -36,17 +36,17 @@ int main()
     // Allocate some memory for stack expressions
     int* stack_dev = NULL;
     int stacksize = 66;
-    long* opstack_dev = NULL;
-    long opstacksize = 38;
+    long long* opstack_dev = NULL;
+    long long opstacksize = 38;
     float* valuesstack_dev = NULL;
     int valuestacksize = 22;
     double* outputstack_dev = NULL;
     int outputstacksize = 0;
 
     // Increase max stack frame size to max (this has to be increased with increasing threads/blocks).
-    cudaError_t stat;
-    size_t new_stack_size = 1024*2;
-    stat = cudaDeviceSetLimit(cudaLimitStackSize, new_stack_size);
+    //cudaError_t stat;
+    //size_t new_stack_size = 512*2;
+    //stat = cudaDeviceSetLimit(cudaLimitStackSize, new_stack_size);
     //size_t max_stack_size[1];
     //cudaDeviceGetLimit(max_stack_size,cudaLimitStackSize);
     //std::cout << max_stack_size[0] << std::endl;
@@ -54,8 +54,8 @@ int main()
     cudaMalloc((void**)&stack_dev,stacksize*sizeof(int));
     cudaMemcpy(stack_dev,stack,stacksize*sizeof(int),cudaMemcpyHostToDevice);
 
-    cudaMalloc((void**)&opstack_dev,opstacksize*sizeof(long));
-    cudaMemcpy(opstack_dev,ops,opstacksize*sizeof(long),cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&opstack_dev,opstacksize*sizeof(long long));
+    cudaMemcpy(opstack_dev,ops,opstacksize*sizeof(long long),cudaMemcpyHostToDevice);
 
     cudaMalloc((void**)&valuesstack_dev,valuestacksize*sizeof(float));
     cudaMemcpy(valuesstack_dev,values,valuestacksize*sizeof(float),cudaMemcpyHostToDevice);

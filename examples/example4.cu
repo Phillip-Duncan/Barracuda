@@ -15,8 +15,8 @@
 
 int main() 
 {
-    int threads = 256;
-    int blocks = 256;
+    const int threads = 128;
+    const int blocks = 128;
     dim3 Grid(blocks,1,1);
     dim3 Block(1,threads,1);
 

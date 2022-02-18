@@ -13,8 +13,8 @@
 
 int main() 
 {
-    int threads = 1;
-    int blocks = 1;
+    const int threads = 1;
+    const int blocks = 1;
     dim3 Grid(blocks,1,1);
     dim3 Block(1,threads,1);
 
