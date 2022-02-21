@@ -1,8 +1,8 @@
 /**
- * @file example4.cu
+ * @file example5.cu
  * @author Phillip Duncan (phillip.duncan-gelder@pg.canterbury.ac.nz)
- * @brief Recursive for loop example.
- * @details Recursive loop example showing power of loop slotting method.
+ * @brief Jumping examples.
+ * @details Use of conditional and non-conditional jumps.
  * @version 1.0
  * @date 2021-10-06
  * 
@@ -10,7 +10,7 @@
  * 
  */
 
-#include "example4.cuh"
+#include "example5.cuh"
 
 int main() 
 {
@@ -19,20 +19,21 @@ int main()
     dim3 Grid(blocks,1,1);
     dim3 Block(1,threads,1);
 
-    // Two nested recursive for loops within another for loop. Resultant Sum = 205.
-    // Equivalant to: int a=5; for(int i=0;i<10;i++){for(int j=0;j<10;j++){a++;} for(int k=0;k<10;k++){a++;}}
-    float values[9] = {1,10,0,1,10,0,10,0,5};
-    long ops[2] = {0x3CC,0x3CC};
-    int stack[17] = {100,100,0,1,99,1,1,100,0,1,99,1,1,99,1,1,1};
-    float output[10*threads*blocks] =   {0};
+    // Two unconditional jumps and a single conditional jump.
+    // First jump brings sp down to conditonal jump, where conditionally jumps up to operation +1 and then
+    // jumps to end of program.
+    float values[6] = {10,1,3,0,7,5};
+    long ops[1] = {0x3CC};
+    int stack[11] = {20,3,1,1,2,1,0,1,2,1,1};
+    float output[6*threads*blocks] =   {0};
 
     // Allocate some memory for stack expressions
     int* stack_dev = NULL;
-    int stacksize = 17;
+    int stacksize = 11;
     long* opstack_dev = NULL;
-    long opstacksize = 2;
+    long opstacksize = 1;
     float* valuesstack_dev = NULL;
-    int valuestacksize = 9;
+    int valuestacksize = 6;
     float* outputstack_dev = NULL;
     int outputstacksize = 0;
 
@@ -54,7 +55,7 @@ int main()
     auto t1 = Clock::now();
 
     for (int j=0;j<1;j++) {
-        example4_kernel<<<Grid,Block>>>(stack_dev,stacksize,opstack_dev,opstacksize,
+        example5_kernel<<<Grid,Block>>>(stack_dev,stacksize,opstack_dev,opstacksize,
         valuesstack_dev,valuestacksize,outputstack_dev,outputstacksize,threads*blocks);
         cudaDeviceSynchronize();
     }

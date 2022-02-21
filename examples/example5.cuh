@@ -10,7 +10,7 @@
 
 template<class I, class F, class LF, class LI>
 __global__ 
-void rule110_kernel(I* stack, I stacksize, LI* opstack, LI opstacksize,
+void example5_kernel(I* stack, I stacksize, LI* opstack, LI opstacksize,
     F* valuestack, I valuestacksize, LF* outputstack, I outputstacksize, I Nthreads) 
 {
     I s_size = stacksize;
@@ -22,10 +22,10 @@ void rule110_kernel(I* stack, I stacksize, LI* opstack, LI opstacksize,
 
     Vars<F> Variables;
     Variables.a = 1.569492;
-    if(tid==0) {
+
+    for(int i=0;i<1;i++) {
         F test = evaluateStackExpr(stack,s_size,opstack,op_size,
             valuestack, v_size, outputstack, ou_size, tid, Nthreads, Variables);
-
     }
 
 }

@@ -129,6 +129,10 @@ struct __align__(256) Vars {
 
     // Internal use only, but can be loaded
     unsigned int PC, TID;
+
+    // Pointer storage, storage must be initialized on device (cudaMalloc),
+    // then allocated device pointer set to MEM_REG, before struct copied to device. 
+    F** MEM_REG;
 };
 
 template<class U, class I>
@@ -181,6 +185,21 @@ inline void push_t(T* stack, I &stackidx, I &stacksize, U value, I nt) {
     stack[stackidx] = (T)value;
     stacksize = stacksize+1;
     stackidx = stackidx+nt;
+}
+
+// Jump/GOTO position on instruction stack
+template<class T, class U, class I>
+__device__
+inline void jmp(T* stack, I &stackidx, I &stacksize, U &PC, I pos) {
+    // Make sure goto is bounded between 0 and alloc(stack), otherwise just go to end (or beginning if <0)
+    pos = pos >= 0 ? pos : 0;
+    pos = pos <= (PC + stackidx) ? pos : PC + stackidx;
+    // Adjust stacksize and stackidx to "goto" pos.
+    stacksize = (I)(PC + stackidx - pos);
+    stackidx  = (I)(PC + stackidx - pos);
+    // Adjust program counter to pos.
+    PC = pos;
+    return;
 }
 
 

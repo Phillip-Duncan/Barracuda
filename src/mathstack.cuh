@@ -50,22 +50,24 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
     }
     // Is a value
     else if (type==1) {
-        value = pop(valuestack,valuestackidx,valuestacksize);
-        push_t(outputstack, outputstackidx, outputstacksize ,value, nt);
+        value = pop(valuestack, valuestackidx, valuestacksize);
+        push_t(outputstack, outputstackidx, outputstacksize, value, nt);
         return;
     }
-    // Goto statement
+    // JUMP/Goto statement
     else if (type==2) {
-        value = pop(outputstack,outputstackidx,outputstacksize);
-        // Make sure goto is bounded between 0 and alloc(stack), otherwise just go to end
-        value = value >= 0 ? value : 0;
-        value = value <= (variables.PC + stackidx) ? value : variables.PC + stackidx;
-        // Adjust stacksize and stackidx to "goto" value.
-        stacksize = (I)(variables.PC + stackidx - value);
-        stackidx  = (I)(variables.PC + stackidx - value);
-        // Adjust program counter to value.
-        variables.PC = value;
-        return;
+        value = pop_t(outputstack, outputstackidx, outputstacksize, nt);
+        jmp(stack,stackidx, stacksize, variables.PC, (I)value);
+    }
+    // JUMP IF == 0 / conditional goto statement
+    else if (type==3) {
+        value = pop_t(outputstack, outputstackidx, outputstacksize, nt);
+        I cond = (I)pop_t(outputstack, outputstackidx, outputstacksize, nt);
+        if (cond==0) {
+            jmp(stack,stackidx,stacksize,variables.PC,(I)value);
+        }
+        else {
+        }
     }
     // function pointer operation
     #if MSTACK_UNSAFE==1
@@ -142,7 +144,9 @@ F* valuestack, I valuestacksize, LF* outputstack, I outputstacksize, L tid, I nt
     I loop_stack[5*MSTACK_LOOP_NEST_LIMIT];
     I loop_idx = 0;
 
-    //for (int i=0;i<stacksize;i++) {
+    // Set program counter back to 0
+    variables.PC = 0;
+
     while (l_stackidx>0) {
 
         // "Pop type from stack"

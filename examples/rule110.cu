@@ -64,12 +64,12 @@ int main()
     cudaMemset(outputstack_dev,0,100*threads*blocks*sizeof(double));
 
 
-    // Launch example kernel
+    // Launch rule110 kernel
     typedef std::chrono::high_resolution_clock Clock;
     auto t1 = Clock::now();
 
     for (int j=0;j<1;j++) {
-        example5_kernel<<<Grid,Block>>>(stack_dev,stacksize,opstack_dev,opstacksize,
+        rule110_kernel<<<Grid,Block>>>(stack_dev,stacksize,opstack_dev,opstacksize,
         valuesstack_dev,valuestacksize,outputstack_dev,outputstacksize,threads*blocks);
         cudaDeviceSynchronize();
     }
