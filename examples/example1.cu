@@ -13,8 +13,8 @@
 
 int main() 
 {
-    const int threads = 256;
-    const int blocks = 256;
+    const int threads = 128;
+    const int blocks = 128;
     dim3 Grid(blocks,1,1);
     dim3 Block(1,threads,1);
 
@@ -28,7 +28,7 @@ int main()
     int* stack_dev = NULL;
     int stacksize = 10;
     long long* opstack_dev = NULL;
-    long long opstacksize = 7;
+    int opstacksize = 7;
     float* valuesstack_dev = NULL;
     int valuestacksize = 3;
     double* outputstack_dev = NULL;
