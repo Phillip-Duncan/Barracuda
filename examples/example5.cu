@@ -23,31 +23,31 @@ int main()
     // First jump brings sp down to conditonal jump, where conditionally jumps up to operation +1 and then
     // jumps to end of program.
     float values[6] = {10,1,3,0,7,5};
-    long ops[1] = {0x3CC};
+    long long ops[1] = {0x3CC};
     int stack[11] = {20,3,1,1,2,1,0,1,2,1,1};
-    float output[6*threads*blocks] =   {0};
+    double output[6*threads*blocks] =   {0};
 
     // Allocate some memory for stack expressions
     int* stack_dev = NULL;
     int stacksize = 11;
-    long* opstack_dev = NULL;
-    long opstacksize = 1;
+    long long* opstack_dev = NULL;
+    int opstacksize = 1;
     float* valuesstack_dev = NULL;
     int valuestacksize = 6;
-    float* outputstack_dev = NULL;
+    double* outputstack_dev = NULL;
     int outputstacksize = 0;
 
     cudaMalloc((void**)&stack_dev,stacksize*sizeof(int));
     cudaMemcpy(stack_dev,stack,stacksize*sizeof(int),cudaMemcpyHostToDevice);
 
-    cudaMalloc((void**)&opstack_dev,opstacksize*sizeof(long));
-    cudaMemcpy(opstack_dev,ops,opstacksize*sizeof(long),cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&opstack_dev,opstacksize*sizeof(long long));
+    cudaMemcpy(opstack_dev,ops,opstacksize*sizeof(long long),cudaMemcpyHostToDevice);
 
     cudaMalloc((void**)&valuesstack_dev,valuestacksize*sizeof(float));
     cudaMemcpy(valuesstack_dev,values,valuestacksize*sizeof(float),cudaMemcpyHostToDevice);
 
-    cudaMalloc((void**)&outputstack_dev,6*threads*blocks*sizeof(float));
-    cudaMemset(outputstack_dev,0,6*threads*blocks*sizeof(float));
+    cudaMalloc((void**)&outputstack_dev,6*threads*blocks*sizeof(double));
+    cudaMemset(outputstack_dev,0,6*threads*blocks*sizeof(double));
 
 
     // Launch example kernel
@@ -62,7 +62,7 @@ int main()
 
     auto t2 = Clock::now();
 
-    cudaMemcpy(output,outputstack_dev,6*threads*blocks*sizeof(float),cudaMemcpyDeviceToHost);
+    cudaMemcpy(output,outputstack_dev,6*threads*blocks*sizeof(double),cudaMemcpyDeviceToHost);
 
     std::cout << "outputs: ";
     for (int i=0;i<5;i++) {

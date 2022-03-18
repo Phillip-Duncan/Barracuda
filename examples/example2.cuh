@@ -8,15 +8,15 @@
 #include <vector>
 #include <chrono>
 
-template<class I, class F, class LF, class LI>
+template<class F>
 __global__ 
-void example2_kernel(I* stack, I stacksize, LI* opstack, LI opstacksize,
-    F* valuestack, I valuestacksize, LF* outputstack, I outputstacksize, I Nthreads) 
+void example2_kernel(int* stack, int stacksize, long long* opstack, int opstacksize,
+    F* valuestack, int valuestacksize, double* outputstack, int outputstacksize, int Nthreads) 
 {
-    I s_size    = stacksize;
-    LI op_size  = opstacksize;
-    I v_size    = valuestacksize;
-    I ou_size   = outputstacksize;
+    int s_size    = stacksize;
+    long long op_size  = opstacksize;
+    int v_size    = valuestacksize;
+    int ou_size   = outputstacksize;
 
     unsigned int tid = (blockIdx.x * blockDim.y) + (blockIdx.y * gridDim.x * blockDim.y) + threadIdx.y;
 
@@ -26,10 +26,10 @@ void example2_kernel(I* stack, I stacksize, LI* opstack, LI opstacksize,
 
     F (*sin_ptr)(F) = &sin;
     F (*atan2_ptr)(F,F) = &atan2;
-    //opstack[0] = (LI)sin_ptr;
+    //opstack[0] = (long long)sin_ptr;
     if(tid==0) {
-        printf("sin function addr:   %ld\n",sin_ptr);
-        printf("atan2 function addr: %ld\n",atan2_ptr);
+        printf("sin function addr:   %lld\n",sin_ptr);
+        printf("atan2 function addr: %lld\n",atan2_ptr);
     }
     for(int i=0;i<1;i++) {
         F test = evaluateStackExpr(stack,s_size,opstack,op_size,

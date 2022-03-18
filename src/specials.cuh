@@ -38,7 +38,7 @@
  * 
  * @tparam I int/long type.
  * @tparam F float/double type.
- * @tparam LI address type.
+ * @tparam long long address type.
  * @param max_steps max number of integration steps (this can be up to a global max of MSTACK_SPECIALS_MMAXSTEP).
  * @param acc desired accuracy.
  * @param functype function type (whether by native [library implented] or user-defined function pointer).
@@ -50,10 +50,10 @@
  * @param o_stacksize output stack size.
  * @param nt total number of threads executing concurrently.
  */
-template<class I, class F, class LF, class LI>
+template<class I, class F>
 __device__
-inline F romberg(I max_steps, F acc, I functype, LI function, F a, F b,
-    LF* outputstack, I &o_stackidx, I &o_stacksize, I nt) {
+inline F romberg(I max_steps, F acc, I functype, long long function, F a, F b,
+    double* outputstack, I &o_stackidx, I &o_stacksize, I nt) {
     Vars<F> dummy_variables;
     F R1[MSTACK_SPECIALS_MMAXSTEP], R2[MSTACK_SPECIALS_MMAXSTEP]; // buffers
     F *Rp = &R1[0], *Rc = &R2[0]; // Rp is previous row, Rc is current row
@@ -135,10 +135,10 @@ inline F romberg(I max_steps, F acc, I functype, LI function, F a, F b,
 }
 
 
-template<class I, class F, class LF, class LI>
+template<class I, class F>
 __device__
-inline F integrate(I intmethod, I maxstep, F accuracy, I functype, LI function, F llim, F ulim,
-            LF* outputstack, I &o_stackidx, I &o_stacksize, I nt) {
+inline F integrate(I intmethod, I maxstep, F accuracy, I functype, long long function, F llim, F ulim,
+            double* outputstack, I &o_stackidx, I &o_stacksize, I nt) {
     F value;
     switch(intmethod) {
         case 1: {

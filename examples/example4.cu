@@ -14,39 +14,39 @@
 
 int main() 
 {
-    const int threads = 128;
-    const int blocks = 128;
+    const int threads = 64;
+    const int blocks = 64;
     dim3 Grid(blocks,1,1);
     dim3 Block(1,threads,1);
 
     // Two nested recursive for loops within another for loop. Resultant Sum = 205.
     // Equivalant to: int a=5; for(int i=0;i<10;i++){for(int j=0;j<10;j++){a++;} for(int k=0;k<10;k++){a++;}}
     float values[9] = {1,10,0,1,10,0,10,0,5};
-    long ops[2] = {0x3CC,0x3CC};
+    long long ops[2] = {0x3CC,0x3CC};
     int stack[17] = {100,100,0,1,99,1,1,100,0,1,99,1,1,99,1,1,1};
-    float output[10*threads*blocks] =   {0};
+    double output[10*threads*blocks] =   {0};
 
     // Allocate some memory for stack expressions
     int* stack_dev = NULL;
     int stacksize = 17;
-    long* opstack_dev = NULL;
-    long opstacksize = 2;
+    long long* opstack_dev = NULL;
+    int opstacksize = 2;
     float* valuesstack_dev = NULL;
     int valuestacksize = 9;
-    float* outputstack_dev = NULL;
+    double* outputstack_dev = NULL;
     int outputstacksize = 0;
 
     cudaMalloc((void**)&stack_dev,stacksize*sizeof(int));
     cudaMemcpy(stack_dev,stack,stacksize*sizeof(int),cudaMemcpyHostToDevice);
 
-    cudaMalloc((void**)&opstack_dev,opstacksize*sizeof(long));
-    cudaMemcpy(opstack_dev,ops,opstacksize*sizeof(long),cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&opstack_dev,opstacksize*sizeof(long long));
+    cudaMemcpy(opstack_dev,ops,opstacksize*sizeof(long long),cudaMemcpyHostToDevice);
 
     cudaMalloc((void**)&valuesstack_dev,valuestacksize*sizeof(float));
     cudaMemcpy(valuesstack_dev,values,valuestacksize*sizeof(float),cudaMemcpyHostToDevice);
 
-    cudaMalloc((void**)&outputstack_dev,6*threads*blocks*sizeof(float));
-    cudaMemset(outputstack_dev,0,6*threads*blocks*sizeof(float));
+    cudaMalloc((void**)&outputstack_dev,6*threads*blocks*sizeof(double));
+    cudaMemset(outputstack_dev,0,6*threads*blocks*sizeof(double));
 
 
     // Launch example kernel
@@ -61,7 +61,7 @@ int main()
 
     auto t2 = Clock::now();
 
-    cudaMemcpy(output,outputstack_dev,6*threads*blocks*sizeof(float),cudaMemcpyDeviceToHost);
+    cudaMemcpy(output,outputstack_dev,6*threads*blocks*sizeof(double),cudaMemcpyDeviceToHost);
 
     std::cout << "outputs: ";
     for (int i=0;i<5;i++) {

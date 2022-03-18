@@ -13,9 +13,9 @@
  #define _STACK_CUH
 
 //forward declaration
-template<class I, class F, class LF, class LI>
-inline __device__ F integrate(I intmethod, I maxstep, F accuracy, I functype, LI function, F llim, F ulim,
-            LF* outputstack, I &o_stackidx, I &o_stacksize, I nt);
+template<class I, class F>
+inline __device__ F integrate(I intmethod, I maxstep, F accuracy, I functype, long long function, F llim, F ulim,
+            double* outputstack, I &o_stackidx, I &o_stacksize, I nt);
 
 enum OPCODES {
 
@@ -208,8 +208,8 @@ inline void jmp(T* stack, I &stackidx, I &stacksize, U &PC, I pos) {
  * 
  * @tparam I int/long type.
  * @tparam F float/double type.
- * @tparam LF long float (double) for mixed STORAGE ONLY (addresses/values). Operations always cast to and done using (F) precision.
- * @tparam LI address type.
+ * @tparam double for mixed STORAGE ONLY (addresses/values). Operations always cast to and done using (F) precision.
+ * @tparam long long address type.
  * @param op operation code (OPCODE).
  * @param outputstack pointer to the output stack.
  * @param o_stackidx output stack index.
@@ -218,11 +218,11 @@ inline void jmp(T* stack, I &stackidx, I &stacksize, U &PC, I pos) {
  * @param mode recursive/irrecursive mode (0 means recursion allowed, 1 prevents function recursion).
  * @param variables Struct symbolic variable storage for loading/storing values from symbols
  */
-template<class F, class LF, class I, class LI>
+template<class F, class I>
 __device__
-inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode, Vars<F> &variables) {
+inline void operation(long long op, double* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode, Vars<F> &variables) {
     F value, v1, v2;
-    LF lvalue, lv1, lv2;
+    double lvalue, lv1, lv2;
     switch(op) {
         // Null operation
         case OPNULL:
@@ -264,37 +264,37 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         }
         case AND: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (LF)((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) & 
+            push_t(outputstack,o_stackidx,o_stacksize, (double)((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) & 
             (unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case NAND: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (LF)!((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) & 
+            push_t(outputstack,o_stackidx,o_stacksize, (double)!((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) & 
             (unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case OR: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (LF)((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) | 
+            push_t(outputstack,o_stackidx,o_stacksize, (double)((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) | 
             (unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case NOR: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (LF)!((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) | 
+            push_t(outputstack,o_stackidx,o_stacksize, (double)!((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) | 
             (unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case XOR: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (LF)((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) ^ 
+            push_t(outputstack,o_stackidx,o_stacksize, (double)((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) ^ 
             (unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case NOT: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (LF)!((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx,o_stacksize, (double)!((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
             break;
         }
         case INC:
@@ -342,7 +342,7 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         {
             lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
             lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            lvalue = (LF)((unsigned long)lv2 << (unsigned long)lv1);
+            lvalue = (double)((unsigned long)lv2 << (unsigned long)lv1);
             push_t(outputstack,o_stackidx,o_stacksize, lvalue , nt);
             break;
         }
@@ -350,7 +350,7 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         {
             lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
             lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            lvalue = (LF)((unsigned long)lv2 >> (unsigned long)lv1);
+            lvalue = (double)((unsigned long)lv2 >> (unsigned long)lv1);
             push_t(outputstack,o_stackidx,o_stacksize, lvalue , nt);
             break;
         }
@@ -361,36 +361,36 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         case MALLOC:
         {
             F* addr = (F*)malloc(pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, (LF)(LI)addr , nt);
+            push_t(outputstack,o_stackidx,o_stacksize, __longlong_as_double((long long)addr) , nt);
             break;
         }
         case FREE:
         {
-            F* addr = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F* addr = (F*)(long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             if(addr!=NULL)
                 free(addr);
             break;
         }
         case MEMCPY:
         {
-            LI size     = (LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F* src      = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F* dest     = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            long long size     = (long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F* src      = (F*)(long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F* dest     = (F*)(long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             memcpy(dest,src,size);
             break;
         }
         case MEMSET:
         {
-            LI size     = (LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            long long size     = (long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             F val       = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F* src      = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F* src      = (F*)__double_as_longlong(pop_t(outputstack,o_stackidx,o_stacksize,nt));
             memset(src,val,size);
-            push_t(outputstack,o_stackidx,o_stacksize,(LF)(LI)src, nt);
+            push_t(outputstack,o_stackidx,o_stacksize,__longlong_as_double((long long)src), nt);
             break;
         }
         case READ:
         {
-            F* addr = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F* addr = (F*)__double_as_longlong(pop_t(outputstack,o_stackidx,o_stacksize,nt));
             if(addr!=NULL) {
                 value = *addr;
                 push_t(outputstack,o_stackidx,o_stacksize,value, nt);
@@ -400,31 +400,31 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         case WRITE:
         {
             value = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F* addr = (F*)(LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F* addr = (F*)__double_as_longlong(pop_t(outputstack,o_stackidx,o_stacksize,nt));
             if(addr!=NULL)
                 *addr = value;
-            //push_t(outputstack,o_stackidx,o_stacksize,(LF)(LI)addr, nt);
             break;
         }
         case ADD_P: 
-        {         
-            push_t(outputstack,o_stackidx,o_stacksize, (LF)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt)
-            + (LI)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+        {   
+            long long li1 = (long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            long long addr = __double_as_longlong(pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            push_t(outputstack,o_stackidx,o_stacksize, __longlong_as_double(addr + li1), nt);
             break;
         }
         case SUB_P: 
         {
-            LI li1 = (LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            LI li2 = (LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            LI val = li2 - li1;
-            push_t(outputstack,o_stackidx,o_stacksize, (LF)val, nt);
+            long long li1 = (long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            long long addr = __double_as_longlong(pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            long long val = addr - li1; //li2 - li1;
+            push_t(outputstack,o_stackidx,o_stacksize, __longlong_as_double(val), nt);
             break;
         }
         case TERNARY: 
         {
             lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
             lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            LF lv3 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            double lv3 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
             lvalue = (lv3>0) ? lv2:lv1;
             push_t(outputstack,o_stackidx,o_stacksize, lvalue , nt);
             break;
@@ -636,7 +636,7 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         }
         case FREXP:
         {
-            I* i_ptr = (I*)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            I* i_ptr = (I*)((long long)pop_t(outputstack,o_stackidx,o_stacksize,nt));
             v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             value = frexp(v2,i_ptr);
             push_t(outputstack,o_stackidx,o_stacksize, value, nt);
@@ -776,7 +776,7 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         }
         case MODF:
         {
-            F* f_ptr = (F*)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            F* f_ptr = (F*)((long long)pop_t(outputstack,o_stackidx,o_stacksize,nt));
             v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             value = modf(v2,f_ptr);
             push_t(outputstack,o_stackidx,o_stacksize, value, nt);
@@ -784,7 +784,7 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         }
         case NNAN:
         {
-            char* char_ptr = (char*)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            char* char_ptr = (char*)((long long)pop_t(outputstack,o_stackidx,o_stacksize,nt));
             value = nan(char_ptr);
             push_t(outputstack,o_stackidx,o_stacksize, value, nt);
             break;
@@ -805,7 +805,7 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         }
         case NORM:
         {
-            double* d_ptr = (double*)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            double* d_ptr = (double*)((long long)pop_t(outputstack,o_stackidx,o_stacksize,nt));
             v2 = (I)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             value = norm((I)v2,d_ptr);
             push_t(outputstack,o_stackidx,o_stacksize, value, nt);
@@ -866,7 +866,7 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         }
         case REMQUO:
         {
-            I* i_ptr = (I*)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            I* i_ptr = (I*)((long long)pop_t(outputstack,o_stackidx,o_stacksize,nt));
             v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             value = remquo(v2,v1,i_ptr);
@@ -889,7 +889,7 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         }
         case RNORM:
         {
-            double* d_ptr = (double*)((LI)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            double* d_ptr = (double*)((long long)pop_t(outputstack,o_stackidx,o_stacksize,nt));
             v2 = (I)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             value = rnorm((I)v2,d_ptr);
             push_t(outputstack,o_stackidx,o_stacksize, value, nt);
@@ -928,7 +928,7 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         }
         case SCALBLN:
         {
-            LI liv1 = (LI)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            long long liv1 = (long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
             value = scalbln(v2,liv1);
             push_t(outputstack,o_stackidx,o_stacksize, value, nt);
@@ -1022,28 +1022,28 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
         //Syscall operations
         case PRINTC:
         {
-            char char_v = (char)(LI)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            char char_v = (char)(long long)pop_t(outputstack, o_stackidx, o_stacksize, nt);
             printf("%c",char_v);
             break;
         }
         case PRINTCT:
         {
-            char char_v = (char)(LI)pop_t(outputstack, o_stackidx, o_stacksize, nt);
-            LI thread = (LI)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            char char_v = (char)(long long)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            long long thread = (long long)pop_t(outputstack, o_stackidx, o_stacksize, nt);
             if (thread==variables.TID)
                 printf("%c",char_v);
             break;
         }
         case PRINTF:
         {
-            value = (F)(LI)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            value = (F)(long long)pop_t(outputstack, o_stackidx, o_stacksize, nt);
             printf("%f",value);
             break;
         }
         case PRINTFT:
         {
-            value = (F)(LI)pop_t(outputstack, o_stackidx, o_stacksize, nt);
-            LI thread = (LI)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            value = (F)(long long)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            long long thread = (long long)pop_t(outputstack, o_stackidx, o_stacksize, nt);
             if (thread==variables.TID)
                 printf("%f",value);
             break;
@@ -1061,7 +1061,7 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
                     F accuracy  = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
                     //I nofvars   = (I) pop_t(outputstack, o_stackidx, o_stacksize, nt); // Number of other variables function takes (implement later)
                     I functype  = (I) pop_t(outputstack, o_stackidx, o_stacksize, nt); // Whether to use in-built or user-defined function.
-                    LI function = (LI) pop_t(outputstack, o_stackidx, o_stacksize, nt);
+                    long long function = (long long) pop_t(outputstack, o_stackidx, o_stacksize, nt);
                     F ulim      = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
                     F llim      = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
                     value = integrate(intmethod,maxsteps,accuracy,functype,function,llim,ulim,
@@ -1519,9 +1519,9 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
 
 
 // Overloaded normal operation function for no variables provided, just create an empty struct and pass in.
-template<class F, class LF, class I, class LI>
+template<class F, class I>
 __device__
-inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode) {
+inline void operation(long long op, double* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode) {
     Vars<F> variables;
     operation(op, outputstack, o_stackidx, o_stacksize, nt, mode, variables);
 }
@@ -1529,13 +1529,13 @@ inline void operation(LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I n
 
 // Overloaded operation function for function pointers of arbitrary functions up to order 8. This is UNSAFE
 #if MSTACK_UNSAFE==1
-template<class F, class LF, class I, class LI>
+template<class F, class I>
 __device__
-inline void operation(I type, LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode, Vars<F> &variables) {
+inline void operation(I type, long long op, double* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode, Vars<F> &variables) {
     if (op==OPNULL)
         return;
     I nargs = abs(type);
-    LI addr = op;
+    long long addr = op;
     F value, v1, v2, v3, v4, v5, v6, v7, v8;
     switch(nargs) {
         case 1:
@@ -1641,9 +1641,9 @@ inline void operation(I type, LI op, LF* outputstack, I &o_stackidx, I &o_stacks
     }
 }
 // Overloaded function-pointer operation function for no variables provided, just create an empty struct and pass in.
-template<class F, class LF, class I, class LI>
+template<class F, class I>
 __device__
-inline void operation(I type, LI op, LF* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode) {
+inline void operation(I type, long long op, double* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode) {
     Vars<F> variables;
     operation(type, op, outputstack, o_stackidx, o_stacksize, nt, mode, variables);
 }

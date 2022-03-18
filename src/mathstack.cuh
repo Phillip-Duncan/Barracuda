@@ -33,13 +33,13 @@
     #include "specials.cuh"
 #endif
 
-template<class I, class F, class LF, class L, class LI>
+template<class I, class F, class L>
 __device__
-void eval(I type, I* stack, I &stackidx, I &stacksize, LI* opstack, I &opstackidx, I &opstacksize,
-F* valuestack, I &valuestackidx, I &valuestacksize, LF* outputstack, I &outputstackidx, I &outputstacksize, 
+void eval(I type, I* stack, I &stackidx, I &stacksize, long long* opstack, I &opstackidx, I &opstacksize,
+F* valuestack, I &valuestackidx, I &valuestacksize, double* outputstack, I &outputstackidx, I &outputstacksize, 
 L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
 {
-    LI op;
+    long long op;
     F value;
 
     // Is an ordinary operation
@@ -119,10 +119,10 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
 
 }
 
-template<class I, class F, class LF, class L, class LI>
+template<class I, class F, class L>
 __device__
-inline F evaluateStackExpr(I* stack, I stacksize, LI* opstack, LI opstacksize,
-F* valuestack, I valuestacksize, LF* outputstack, I outputstacksize, L tid, I nt, Vars<F> &variables ) 
+inline F evaluateStackExpr(I* stack, I stacksize, long long* opstack, long long opstacksize,
+F* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L tid, I nt, Vars<F> &variables ) 
 {
 
     // Make local versions of stack sizes and idxs for each thread
@@ -165,9 +165,9 @@ F* valuestack, I valuestacksize, LF* outputstack, I outputstacksize, L tid, I nt
 
 
 // Function overload for when expression contains no Variables and struct not provided.
-template<class I, class F, class L, class LI>
+template<class I, class F, class L>
 __device__
-inline F evaluateStackExpr(I* stack, I stacksize, LI* opstack, LI opstacksize,
+inline F evaluateStackExpr(I* stack, I stacksize, long long* opstack, long long opstacksize,
 F* valuestack, I valuestacksize, F* outputstack, I outputstacksize, L tid, I nt ) {
     Vars<F> Variables;
     return evaluateStackExpr(stack, stacksize, opstack, opstacksize,

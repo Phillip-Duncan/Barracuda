@@ -26,30 +26,22 @@ int main()
 
     long long ops[38] = {DROP,DROP,SWAP,WRITE,AND,RSHIFT,SWAP,OVER,SUB_P,OVER,OR,READ,OVER,AND,LSHIFT,SWAP,ADD_P,
                         ADD_P,OVER,OR,READ,ADD_P,OVER,LSHIFT,READ,DUP,PRINTC,DROP,PRINTC,TERNARY,READ,DUP,
-                        ADD_P,DUP,WRITE,ADD_P,OVER,MALLOC};
+                        ADD_P,DUP,WRITE,ADD_P,DUP,MALLOC};
     // 43
     int stack[66] = {100,0,0,100,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,1,0,1,0,0,1,99,
                         1,1,0,1,0,0,0,0,1,0,0,1,0,0,0,1,0,100,
-                        0,0,1,1,0,0,0,1,99,1,1,0,99,1,1,0,1,0,0,1,0,1};
+                        0,0,1,1,0,0,0,1,99,1,1,0,99,1,1,0,1,0,1,0,0,1};
     double output[100*threads*blocks] =   {0};
 
     // Allocate some memory for stack expressions
     int* stack_dev = NULL;
     int stacksize = 66;
     long long* opstack_dev = NULL;
-    long long opstacksize = 38;
+    int opstacksize = 38;
     float* valuesstack_dev = NULL;
     int valuestacksize = 22;
     double* outputstack_dev = NULL;
     int outputstacksize = 0;
-
-    // Increase max stack frame size to max (this has to be increased with increasing threads/blocks).
-    //cudaError_t stat;
-    //size_t new_stack_size = 512*2;
-    //stat = cudaDeviceSetLimit(cudaLimitStackSize, new_stack_size);
-    //size_t max_stack_size[1];
-    //cudaDeviceGetLimit(max_stack_size,cudaLimitStackSize);
-    //std::cout << max_stack_size[0] << std::endl;
 
     cudaMalloc((void**)&stack_dev,stacksize*sizeof(int));
     cudaMemcpy(stack_dev,stack,stacksize*sizeof(int),cudaMemcpyHostToDevice);
