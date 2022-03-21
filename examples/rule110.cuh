@@ -10,11 +10,11 @@
 
 template<class F>
 __global__ 
-void rule110_kernel(int* stack, int stacksize, long long* opstack, long long opstacksize,
+void rule110_kernel(int* stack, int stacksize, long long* opstack, int opstacksize,
     F* valuestack, int valuestacksize, double* outputstack, int outputstacksize, int Nthreads) 
 {
     int s_size = stacksize;
-    long long op_size = opstacksize;
+    int op_size = opstacksize;
     int v_size = valuestacksize;
     int ou_size = outputstacksize;
 
