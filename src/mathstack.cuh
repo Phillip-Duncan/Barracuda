@@ -35,8 +35,8 @@
 
 template<class I, class F, class L>
 __device__
-void eval(I type, I* stack, I &stackidx, I &stacksize, long long* opstack, I &opstackidx, I &opstacksize,
-F* valuestack, I &valuestackidx, I &valuestacksize, double* outputstack, I &outputstackidx, I &outputstacksize, 
+void eval(I type, I* stack, I &stackidx, I &stacksize, long long* opstack, I &opstackidx,
+F* valuestack, I &valuestackidx, double* outputstack, I &outputstackidx, 
 L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
 {
     long long op;
@@ -44,27 +44,27 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
 
     // Is an ordinary operation
     if (type==0) {
-        op = pop(opstack,opstackidx,opstacksize);
-        operation<F>(op, outputstack, outputstackidx, outputstacksize, nt, 0, variables);
+        op = pop(opstack,opstackidx);
+        operation<F>(op, outputstack, outputstackidx, nt, 0, variables);
         return;
     }
     // Is a value
     else if (type==1) {
-        value = pop(valuestack, valuestackidx, valuestacksize);
-        push_t(outputstack, outputstackidx, outputstacksize, value, nt);
+        value = pop(valuestack, valuestackidx);
+        push_t(outputstack, outputstackidx, value, nt);
         return;
     }
     // JUMP/Goto statement
     else if (type==2) {
-        value = pop_t(outputstack, outputstackidx, outputstacksize, nt);
-        jmp(stack,stackidx, stacksize, variables.PC, (I)value);
+        value = pop_t(outputstack, outputstackidx, nt);
+        jmp(stack, stackidx, stacksize, (I)value);
     }
     // JUMP IF == 0 / conditional goto statement
     else if (type==3) {
-        value = pop_t(outputstack, outputstackidx, outputstacksize, nt);
-        I cond = (I)pop_t(outputstack, outputstackidx, outputstacksize, nt);
+        value = pop_t(outputstack, outputstackidx, nt);
+        I cond = (I)pop_t(outputstack, outputstackidx, nt);
         if (cond==0) {
-            jmp(stack,stackidx,stacksize,variables.PC,(I)value);
+            jmp(stack, stackidx, stacksize, (I)value);
         }
         else {
         }
@@ -72,14 +72,14 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
     // function pointer operation
     #if MSTACK_UNSAFE==1
         else if (type<0) {
-            op = pop(opstack,opstackidx,opstacksize);
-            operation<F>(type, op, outputstack, outputstackidx, outputstacksize, nt, 0, variables);
+            op = pop(opstack, opstackidx);
+            operation<F>(type, op, outputstack, outputstackidx, nt, 0, variables);
             return;
         }
     #endif
     else if (type==99) {
-        I imax = (I)pop_t(outputstack, outputstackidx, outputstacksize, nt);
-        I i = (I)pop_t(outputstack, outputstackidx, outputstacksize, nt);
+        I imax = (I)pop_t(outputstack, outputstackidx, nt);
+        I i = (I)pop_t(outputstack, outputstackidx, nt);
         // Store stack locations of loop entry, i and imax.
         loop_stack[5*loop_idx] = stackidx;
         loop_stack[5*loop_idx+1] = opstackidx;
@@ -103,20 +103,19 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
         // Otherwise goto start of loop.
         else {
             // Reset program counter
-            variables.PC = variables.PC + stackidx - loop_stack[5*(loop_idx-1)];
+            //variables.PC = variables.PC + stackidx - loop_stack[5*(loop_idx-1)];
+            variables.PC = stacksize - loop_stack[5*(loop_idx-1)];
 
             // Swap indicies/sizes
             stackidx = loop_stack[5*(loop_idx-1)];
-            stacksize = loop_stack[5*(loop_idx-1)];
+            //stacksize = loop_stack[5*(loop_idx-1)];
             opstackidx = loop_stack[5*(loop_idx-1) + 1];
-            opstacksize = loop_stack[5*(loop_idx-1) + 1];
+            //opstacksize = loop_stack[5*(loop_idx-1) + 1];
             valuestackidx = loop_stack[5*(loop_idx-1) + 2];
-            valuestacksize = loop_stack[5*(loop_idx-1) + 2];
+            //valuestacksize = loop_stack[5*(loop_idx-1) + 2];
             return;
         }
-        
     }
-
 }
 
 template<class I, class F, class L>
@@ -125,15 +124,12 @@ inline F evaluateStackExpr(I* stack, I stacksize, long long* opstack, long long 
 F* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L tid, I nt, Vars<F> &variables ) 
 {
 
-    // Make local versions of stack sizes and idxs for each thread
-    I l_outputstacksize = outputstacksize;
+    // Make local versions of idxs for each thread
     I l_outputstackidx  = tid;
 
     I l_stacksize         = stacksize;
     I l_stackidx          = stacksize;
-    I l_opstacksize       = opstacksize;
     I l_opstackidx        = opstacksize;
-    I l_valuestacksize    = valuestacksize;
     I l_valuestackidx     = valuestacksize;
 
     I type;
@@ -150,14 +146,14 @@ F* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L tid, 
     while (l_stackidx>0) {
 
         // "Pop type from stack"
-        type = pop(stack,l_stackidx,l_stacksize);
+        type = pop(stack,l_stackidx);
 
-        // Advance program counter
-        variables.PC += 1;
-        eval(type, stack, l_stackidx, l_stacksize, opstack, l_opstackidx, l_opstacksize, valuestack, 
-                l_valuestackidx, l_valuestacksize, outputstack, l_outputstackidx, l_outputstacksize,
+        eval(type, stack, l_stackidx, l_stacksize, opstack, l_opstackidx, valuestack, 
+                l_valuestackidx, outputstack, l_outputstackidx,
                 tid, nt, variables, loop_stack, loop_idx);
 
+        // Advance program counter
+        variables.PC = l_stacksize - l_stackidx;
     }
     // Return the final result from the outputstack
     return outputstack[tid];

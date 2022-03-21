@@ -47,13 +47,12 @@
  * @param b upper integration limit.
  * @param outputstack pointer to the output stack.
  * @param o_stackidx output stack index.
- * @param o_stacksize output stack size.
  * @param nt total number of threads executing concurrently.
  */
 template<class I, class F>
 __device__
 inline F romberg(I max_steps, F acc, I functype, long long function, F a, F b,
-    double* outputstack, I &o_stackidx, I &o_stacksize, I nt) {
+    double* outputstack, I &o_stackidx, I nt) {
     Vars<F> dummy_variables;
     F R1[MSTACK_SPECIALS_MMAXSTEP], R2[MSTACK_SPECIALS_MMAXSTEP]; // buffers
     F *Rp = &R1[0], *Rc = &R2[0]; // Rp is previous row, Rc is current row
@@ -62,20 +61,20 @@ inline F romberg(I max_steps, F acc, I functype, long long function, F a, F b,
     switch(functype) {
         case 0:
         {
-            push_t(outputstack,o_stackidx,o_stacksize, a, nt);
-            operation<F>(function, outputstack, o_stackidx, o_stacksize,nt, 1, dummy_variables);
-            push_t(outputstack,o_stackidx,o_stacksize, b, nt);
-            operation<F>(function, outputstack, o_stackidx, o_stacksize,nt, 1, dummy_variables);
-            Rp[0] = ( pop_t(outputstack,o_stackidx,o_stacksize, nt) + pop_t(outputstack,o_stackidx,o_stacksize, nt) )*h*0.5;
+            push_t(outputstack,o_stackidx, a, nt);
+            operation<F>(function, outputstack, o_stackidx, nt, 1, dummy_variables);
+            push_t(outputstack,o_stackidx, b, nt);
+            operation<F>(function, outputstack, o_stackidx, nt, 1, dummy_variables);
+            Rp[0] = ( pop_t(outputstack,o_stackidx, nt) + pop_t(outputstack,o_stackidx, nt) )*h*0.5;
             break;
         }
         case 1: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, a, nt);
-            operation<F>(-1,function, outputstack, o_stackidx, o_stacksize, nt, 1, dummy_variables);
-            push_t(outputstack,o_stackidx,o_stacksize, b, nt);
-            operation<F>(-1,function, outputstack, o_stackidx, o_stacksize, nt, 1, dummy_variables);
-            Rp[0] = ( pop_t(outputstack,o_stackidx,o_stacksize, nt) + pop_t(outputstack,o_stackidx,o_stacksize, nt) )*h*0.5;
+            push_t(outputstack,o_stackidx, a, nt);
+            operation<F>(-1,function, outputstack, o_stackidx,  nt, 1, dummy_variables);
+            push_t(outputstack,o_stackidx, b, nt);
+            operation<F>(-1,function, outputstack, o_stackidx,  nt, 1, dummy_variables);
+            Rp[0] = ( pop_t(outputstack,o_stackidx, nt) + pop_t(outputstack,o_stackidx, nt) )*h*0.5;
             break;
         }
     }
@@ -96,16 +95,16 @@ inline F romberg(I max_steps, F acc, I functype, long long function, F a, F b,
             switch(functype) {
                 case 0:
                 {
-                    push_t(outputstack,o_stackidx,o_stacksize, a+(2*j-1)*h, nt);
-                    operation<F>(function, outputstack, o_stackidx, o_stacksize,nt, 1, dummy_variables);
-                    c += pop_t(outputstack,o_stackidx,o_stacksize, nt);
+                    push_t(outputstack,o_stackidx, a+(2*j-1)*h, nt);
+                    operation<F>(function, outputstack, o_stackidx, nt, 1, dummy_variables);
+                    c += pop_t(outputstack,o_stackidx, nt);
                     break;
                 }
                 case 1:
                 {
-                    push_t(outputstack,o_stackidx,o_stacksize, a+(2*j-1)*h, nt);
-                    operation<F>(-1,function, outputstack, o_stackidx, o_stacksize, nt, 1, dummy_variables);
-                    c += pop_t(outputstack,o_stackidx,o_stacksize, nt);
+                    push_t(outputstack,o_stackidx, a+(2*j-1)*h, nt);
+                    operation<F>(-1,function, outputstack, o_stackidx,  nt, 1, dummy_variables);
+                    c += pop_t(outputstack,o_stackidx, nt);
                     break;
                 }
             }
@@ -138,12 +137,12 @@ inline F romberg(I max_steps, F acc, I functype, long long function, F a, F b,
 template<class I, class F>
 __device__
 inline F integrate(I intmethod, I maxstep, F accuracy, I functype, long long function, F llim, F ulim,
-            double* outputstack, I &o_stackidx, I &o_stacksize, I nt) {
+            double* outputstack, I &o_stackidx, I nt) {
     F value;
     switch(intmethod) {
         case 1: {
             value = romberg(maxstep, accuracy, functype, function, llim, ulim,
-                outputstack, o_stackidx, o_stacksize, nt);
+                outputstack, o_stackidx,  nt);
             break;
         }
     }

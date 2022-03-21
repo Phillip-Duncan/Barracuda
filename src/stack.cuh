@@ -15,7 +15,7 @@
 //forward declaration
 template<class I, class F>
 inline __device__ F integrate(I intmethod, I maxstep, F accuracy, I functype, long long function, F llim, F ulim,
-            double* outputstack, I &o_stackidx, I &o_stacksize, I nt);
+            double* outputstack, I &o_stackidx, I nt);
 
 enum OPCODES {
 
@@ -137,9 +137,8 @@ struct __align__(256) Vars {
 
 template<class U, class I>
 __device__
-inline U pop(U* stack, I &stackidx, I &stacksize) {
-    if(stacksize>0) {
-        stacksize = stacksize-1;
+inline U pop(U* stack, I &stackidx) {
+    if(stackidx>0) {
         stackidx = stackidx-1;
         U value = stack[stackidx];
         return value;
@@ -151,9 +150,8 @@ inline U pop(U* stack, I &stackidx, I &stacksize) {
 
 template<class U, class I>
 __device__
-inline U pop_t(U* stack, I &stackidx, I &stacksize, I nt) {
-    if(stacksize>0) {
-        stacksize = stacksize-1;
+inline U pop_t(U* stack, I &stackidx, I nt) {
+    if((stackidx-nt)>=0) {
         stackidx = stackidx-nt;
         return stack[stackidx];
     }
@@ -164,41 +162,37 @@ inline U pop_t(U* stack, I &stackidx, I &stacksize, I nt) {
 
 template<class U, class I>
 __device__
-inline void push(U* stack, I &stackidx, I &stacksize, U value) {
+inline void push(U* stack, I &stackidx, U value) {
     stack[stackidx] = value;
-    stacksize = stacksize+1;
     stackidx = stackidx+1;
 }
 
 template<class U, class I>
 __device__
-inline void push_t(U* stack, I &stackidx, I &stacksize, U value, I nt) {
+inline void push_t(U* stack, I &stackidx, U value, I nt) {
     stack[stackidx] = value;
-    stacksize = stacksize+1;
     stackidx = stackidx+nt;
 }
 
 // Overload push_t function where stack-value types differ so is thus broadcast. Useful for storing memory addresses, etc.
 template<class T, class U, class I>
 __device__
-inline void push_t(T* stack, I &stackidx, I &stacksize, U value, I nt) {
+inline void push_t(T* stack, I &stackidx, U value, I nt) {
     stack[stackidx] = (T)value;
-    stacksize = stacksize+1;
     stackidx = stackidx+nt;
 }
 
 // Jump/GOTO position on instruction stack
-template<class T, class U, class I>
+template<class T, class I>
 __device__
-inline void jmp(T* stack, I &stackidx, I &stacksize, U &PC, I pos) {
+inline void jmp(T* stack, I &stackidx, I stacksize, I pos) {
     // Make sure goto is bounded between 0 and alloc(stack), otherwise just go to end (or beginning if <0)
     pos = pos >= 0 ? pos : 0;
-    pos = pos <= (PC + stackidx) ? pos : PC + stackidx;
-    // Adjust stacksize and stackidx to "goto" pos.
-    stacksize = (I)(PC + stackidx - pos);
-    stackidx  = (I)(PC + stackidx - pos);
+    pos = pos <= stacksize ? pos : stacksize;
+    // Adjust stackidx to "goto" pos.
+    stackidx  = (I)(stacksize - pos);
     // Adjust program counter to pos.
-    PC = pos;
+    //PC = pos;
     return;
 }
 
@@ -213,14 +207,13 @@ inline void jmp(T* stack, I &stackidx, I &stacksize, U &PC, I pos) {
  * @param op operation code (OPCODE).
  * @param outputstack pointer to the output stack.
  * @param o_stackidx output stack index.
- * @param o_stacksize output stack size.
  * @param nt total number of threads executing concurrently.
  * @param mode recursive/irrecursive mode (0 means recursion allowed, 1 prevents function recursion).
  * @param variables Struct symbolic variable storage for loading/storing values from symbols
  */
 template<class F, class I>
 __device__
-inline void operation(long long op, double* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode, Vars<F> &variables) {
+inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I mode, Vars<F> &variables) {
     F value, v1, v2;
     double lvalue, lv1, lv2;
     switch(op) {
@@ -235,123 +228,123 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I &o_sta
         // Basic Operations
         case ADD:
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (F)pop_t(outputstack,o_stackidx,o_stacksize,nt)
-            + (F)pop_t(outputstack,o_stackidx,o_stacksize,nt), nt);
+            push_t(outputstack,o_stackidx, (F)pop_t(outputstack,o_stackidx,nt)
+            + (F)pop_t(outputstack,o_stackidx,nt), nt);
             break;
         }
         case SUB:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = v2 - v1;
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case MUL:
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (F)pop_t(outputstack,o_stackidx,o_stacksize,nt)
-            * (F)pop_t(outputstack,o_stackidx,o_stacksize,nt), nt);
+            push_t(outputstack,o_stackidx, (F)pop_t(outputstack,o_stackidx,nt)
+            * (F)pop_t(outputstack,o_stackidx,nt), nt);
             break;
         }
         case DIV:
         {
             // Might need to handle divide by -,+ 0 later.. (currently just returns -inf,inf)
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = v2/v1;
-            push_t(outputstack,o_stackidx,o_stacksize, value , nt);
+            push_t(outputstack,o_stackidx, value , nt);
             break;
         }
         case AND: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (double)((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) & 
-            (unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx, (double)((unsigned long)pop_t(outputstack,o_stackidx,nt) & 
+            (unsigned long)pop_t(outputstack,o_stackidx,nt)), nt);
             break;
         }
         case NAND: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (double)!((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) & 
-            (unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx, (double)!((unsigned long)pop_t(outputstack,o_stackidx,nt) & 
+            (unsigned long)pop_t(outputstack,o_stackidx,nt)), nt);
             break;
         }
         case OR: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (double)((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) | 
-            (unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx, (double)((unsigned long)pop_t(outputstack,o_stackidx,nt) | 
+            (unsigned long)pop_t(outputstack,o_stackidx,nt)), nt);
             break;
         }
         case NOR: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (double)!((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) | 
-            (unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx, (double)!((unsigned long)pop_t(outputstack,o_stackidx,nt) | 
+            (unsigned long)pop_t(outputstack,o_stackidx,nt)), nt);
             break;
         }
         case XOR: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (double)((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt) ^ 
-            (unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx, (double)((unsigned long)pop_t(outputstack,o_stackidx,nt) ^ 
+            (unsigned long)pop_t(outputstack,o_stackidx,nt)), nt);
             break;
         }
         case NOT: 
         {
-            push_t(outputstack,o_stackidx,o_stacksize, (double)!((unsigned long)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx, (double)!((unsigned long)pop_t(outputstack,o_stackidx,nt)), nt);
             break;
         }
         case INC:
         {
-            value = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt)+1;
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = (F)pop_t(outputstack,o_stackidx,nt)+1;
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case DEC:
         {
-            value = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt)-1;
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = (F)pop_t(outputstack,o_stackidx,nt)-1;
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case SWAP: 
         {
-            lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            push_t(outputstack,o_stackidx,o_stacksize, lv1 , nt);
-            push_t(outputstack,o_stackidx,o_stacksize, lv2 , nt);
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv2 = pop_t(outputstack,o_stackidx,nt);
+            push_t(outputstack,o_stackidx, lv1 , nt);
+            push_t(outputstack,o_stackidx, lv2 , nt);
             break;
         }
         case DUP: 
         {
-            lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            push_t(outputstack,o_stackidx,o_stacksize, lv1 , nt);
-            push_t(outputstack,o_stackidx,o_stacksize, lv1 , nt);
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            push_t(outputstack,o_stackidx, lv1 , nt);
+            push_t(outputstack,o_stackidx, lv1 , nt);
             break;
         }
         case OVER: 
         {
-            lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            push_t(outputstack,o_stackidx,o_stacksize, lv2 , nt);
-            push_t(outputstack,o_stackidx,o_stacksize, lv1 , nt);
-            push_t(outputstack,o_stackidx,o_stacksize, lv2 , nt);
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv2 = pop_t(outputstack,o_stackidx,nt);
+            push_t(outputstack,o_stackidx, lv2 , nt);
+            push_t(outputstack,o_stackidx, lv1 , nt);
+            push_t(outputstack,o_stackidx, lv2 , nt);
             break;
         }
         case DROP:
         {
-            pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            pop_t(outputstack,o_stackidx,nt);
             break;
         }
         case LSHIFT:
         {
-            lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv2 = pop_t(outputstack,o_stackidx,nt);
             lvalue = (double)((unsigned long)lv2 << (unsigned long)lv1);
-            push_t(outputstack,o_stackidx,o_stacksize, lvalue , nt);
+            push_t(outputstack,o_stackidx, lvalue , nt);
             break;
         }
         case RSHIFT:
         {
-            lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv2 = pop_t(outputstack,o_stackidx,nt);
             lvalue = (double)((unsigned long)lv2 >> (unsigned long)lv1);
-            push_t(outputstack,o_stackidx,o_stacksize, lvalue , nt);
+            push_t(outputstack,o_stackidx, lvalue , nt);
             break;
         }
 
@@ -360,73 +353,73 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I &o_sta
         // Memory/Pointers
         case MALLOC:
         {
-            F* addr = (F*)malloc(pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, __longlong_as_double((long long)addr) , nt);
+            F* addr = (F*)malloc(pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, __longlong_as_double((long long)addr) , nt);
             break;
         }
         case FREE:
         {
-            F* addr = (F*)(long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F* addr = (F*)(long long)pop_t(outputstack,o_stackidx,nt);
             if(addr!=NULL)
                 free(addr);
             break;
         }
         case MEMCPY:
         {
-            long long size     = (long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F* src      = (F*)(long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F* dest     = (F*)(long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            long long size     = (long long)pop_t(outputstack,o_stackidx,nt);
+            F* src      = (F*)(long long)pop_t(outputstack,o_stackidx,nt);
+            F* dest     = (F*)(long long)pop_t(outputstack,o_stackidx,nt);
             memcpy(dest,src,size);
             break;
         }
         case MEMSET:
         {
-            long long size     = (long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F val       = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F* src      = (F*)__double_as_longlong(pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            long long size     = (long long)pop_t(outputstack,o_stackidx,nt);
+            F val       = (F)pop_t(outputstack,o_stackidx,nt);
+            F* src      = (F*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             memset(src,val,size);
-            push_t(outputstack,o_stackidx,o_stacksize,__longlong_as_double((long long)src), nt);
+            push_t(outputstack,o_stackidx,__longlong_as_double((long long)src), nt);
             break;
         }
         case READ:
         {
-            F* addr = (F*)__double_as_longlong(pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            F* addr = (F*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             if(addr!=NULL) {
                 value = *addr;
-                push_t(outputstack,o_stackidx,o_stacksize,value, nt);
+                push_t(outputstack,o_stackidx,value, nt);
             }
             break;
         }
         case WRITE:
         {
-            value = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F* addr = (F*)__double_as_longlong(pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            value = (F)pop_t(outputstack,o_stackidx,nt);
+            F* addr = (F*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             if(addr!=NULL)
                 *addr = value;
             break;
         }
         case ADD_P: 
         {   
-            long long li1 = (long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            long long addr = __double_as_longlong(pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, __longlong_as_double(addr + li1), nt);
+            long long li1 = (long long)pop_t(outputstack,o_stackidx,nt);
+            long long addr = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, __longlong_as_double(addr + li1), nt);
             break;
         }
         case SUB_P: 
         {
-            long long li1 = (long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            long long addr = __double_as_longlong(pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            long long li1 = (long long)pop_t(outputstack,o_stackidx,nt);
+            long long addr = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             long long val = addr - li1; //li2 - li1;
-            push_t(outputstack,o_stackidx,o_stacksize, __longlong_as_double(val), nt);
+            push_t(outputstack,o_stackidx, __longlong_as_double(val), nt);
             break;
         }
         case TERNARY: 
         {
-            lv1 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            lv2 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            double lv3 = pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv2 = pop_t(outputstack,o_stackidx,nt);
+            double lv3 = pop_t(outputstack,o_stackidx,nt);
             lvalue = (lv3>0) ? lv2:lv1;
-            push_t(outputstack,o_stackidx,o_stacksize, lvalue , nt);
+            push_t(outputstack,o_stackidx, lvalue , nt);
             break;
         }
 
@@ -435,585 +428,585 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I &o_sta
         // Mathematical Operators
         case ACOS:
         {
-            value = acos((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = acos((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case ACOSH:
         {
-            value = acosh((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = acosh((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case ASIN:
         {
-            value = asin((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = asin((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case ASINH:
         {
-            value = asinh((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = asinh((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case ATAN:
         {
-            value = atan((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = atan((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case ATAN2:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = atan2(v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value , nt);
+            push_t(outputstack,o_stackidx, value , nt);
             break;
         }
         case ATANH:
         {
-            value = atanh((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = atanh((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case CBRT:
         {
-            value = cbrt((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = cbrt((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case CEIL:
         {
-            value = ceil((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = ceil((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case CPYSGN:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = copysign(v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case COS:
         {
-            value = cos((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = cos((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case COSH:
         {
-            value = cosh((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = cosh((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case COSPI:
         {
-            value = cospi((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = cospi((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case BESI0:
         {
-            value = cyl_bessel_i0((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = cyl_bessel_i0((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case BESI1:
         {
-            value = cyl_bessel_i1((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = cyl_bessel_i1((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case ERF:
         {
-            value = erf((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = erf((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case ERFC:
         {
-            value = erfc((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = erfc((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case ERFCI:
         {
-            value = erfcinv((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = erfcinv((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case ERFCX:
         {
-            value = erfcx((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = erfcx((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case ERFI:
         {
-            value = erfinv((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = erfinv((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case EXP:
         {
-            value = exp((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = exp((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case EXP10:
         {
-            value = exp10((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = exp10((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case EXP2:
         {
-            value = exp2((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = exp2((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case EXPM1:
         {
-            value = expm1((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = expm1((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case FABS:
         {
-            value = fabs((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = fabs((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case FDIM:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = fdim(v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case FLOOR:
         {
-            value = floor((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = floor((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case FMA:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
+            F v3 = (F)pop_t(outputstack,o_stackidx,nt);
             value = fma(v3,v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case FMAX:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = fmax(v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case FMIN:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = fmin(v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case FMOD:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = fmod(v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case FREXP:
         {
-            I* i_ptr = (I*)((long long)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            I* i_ptr = (I*)((long long)pop_t(outputstack,o_stackidx,nt));
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = frexp(v2,i_ptr);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case HYPOT:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = hypot(v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case ILOGB:
         {
-            value = ilogb((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = ilogb((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case ISFIN:
         {
-            value = isfinite((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = isfinite((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case ISINF:
         {
-            value = isinf((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = isinf((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case ISNAN:
         {
-            value = isnan((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = isnan((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case BESJ0:
         {
-            value = j0((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = j0((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case BESJ1:
         {
-            value = j1((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = j1((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case BESJN:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (I)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (I)pop_t(outputstack,o_stackidx,nt);
             value = jn((I)v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case LDEXP:
         {
-            v1 = (I)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (I)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = ldexp(v2,(I)v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case LGAMMA:
         {
-            value = lgamma((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = lgamma((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case LLRINT:
         {
-            push_t(outputstack,o_stackidx,o_stacksize, llrint((F)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx, llrint((F)pop_t(outputstack,o_stackidx,nt)), nt);
             break;
         }
         case LLROUND:
         {
-            push_t(outputstack,o_stackidx,o_stacksize, llround((F)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx, llround((F)pop_t(outputstack,o_stackidx,nt)), nt);
             break;
         }
         case LOG:
         {
-            value = log((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = log((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case LOG10:
         {
-            value = log10((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = log10((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case LOG1P:
         {
-            value = log1p((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = log1p((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case LOG2:
         {
-            value = log2((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = log2((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case LOGB:
         {
-            value = logb((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = logb((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case LRINT:
         {
-            push_t(outputstack,o_stackidx,o_stacksize, lrint((F)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx, lrint((F)pop_t(outputstack,o_stackidx,nt)), nt);
             break;
         }
         case LROUND:
         {
-            push_t(outputstack,o_stackidx,o_stacksize, lround((F)pop_t(outputstack,o_stackidx,o_stacksize,nt)), nt);
+            push_t(outputstack,o_stackidx, lround((F)pop_t(outputstack,o_stackidx,nt)), nt);
             break;
         }
         case MAX:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = max(v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case MIN:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = min(v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case MODF:
         {
-            F* f_ptr = (F*)((long long)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            F* f_ptr = (F*)((long long)pop_t(outputstack,o_stackidx,nt));
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = modf(v2,f_ptr);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case NNAN:
         {
-            char* char_ptr = (char*)((long long)pop_t(outputstack,o_stackidx,o_stacksize,nt));
+            char* char_ptr = (char*)((long long)pop_t(outputstack,o_stackidx,nt));
             value = nan(char_ptr);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case NEARINT:
         {
-            value = nearbyint((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = nearbyint((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case NXTAFT:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = nextafter(v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case NORM:
         {
-            double* d_ptr = (double*)((long long)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            v2 = (I)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            double* d_ptr = (double*)((long long)pop_t(outputstack,o_stackidx,nt));
+            v2 = (I)pop_t(outputstack,o_stackidx,nt);
             value = norm((I)v2,d_ptr);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case NORM3D:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
+            F v3 = (F)pop_t(outputstack,o_stackidx,nt);
             value = norm3d(v3,v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case NORM4D:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F v4 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
+            F v3 = (F)pop_t(outputstack,o_stackidx,nt);
+            F v4 = (F)pop_t(outputstack,o_stackidx,nt);
             value = norm4d(v4,v3,v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case NORMCDF:
         {
-            value = normcdf((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = normcdf((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case NORMCDFINV:
         {
-            value = normcdfinv((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = normcdfinv((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case POW:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = pow(v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case RCBRT:
         {
-            value = rcbrt((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = rcbrt((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case REM:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = remainder(v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case REMQUO:
         {
-            I* i_ptr = (I*)((long long)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            I* i_ptr = (I*)((long long)pop_t(outputstack,o_stackidx,nt));
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = remquo(v2,v1,i_ptr);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case RHYPOT:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = rhypot(v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case RINT:
         {
-            value = rint((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = rint((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case RNORM:
         {
-            double* d_ptr = (double*)((long long)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            v2 = (I)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            double* d_ptr = (double*)((long long)pop_t(outputstack,o_stackidx,nt));
+            v2 = (I)pop_t(outputstack,o_stackidx,nt);
             value = rnorm((I)v2,d_ptr);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case RNORM3D:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
+            F v3 = (F)pop_t(outputstack,o_stackidx,nt);
             value = rnorm3d(v3,v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case RNORM4D:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            F v4 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
+            F v3 = (F)pop_t(outputstack,o_stackidx,nt);
+            F v4 = (F)pop_t(outputstack,o_stackidx,nt);
             value = rnorm4d(v4,v3,v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case ROUND:
         {
-            value = round((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = round((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case RSQRT:
         {
-            value = rsqrt((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = rsqrt((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case SCALBLN:
         {
-            long long liv1 = (long long)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            long long liv1 = (long long)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = scalbln(v2,liv1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case SCALBN:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = scalbn((double)v2,(I)v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case SGNBIT:
         {
-            value = signbit((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = signbit((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case SIN:
         {
-            value = sin((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = sin((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case SINH:
         {
-            value = sinh((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = sinh((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case SINPI:
         {
-            value = sinpi((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = sinpi((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case SQRT:
         {
-            value = sqrt((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = sqrt((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case TAN:
         {
-            value = tan((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = tan((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case TANH:
         {
-            value = tanh((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = tanh((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case TGAMMA:
         {
-            value = tgamma((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = tgamma((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case TRUNC:
         {
-            value = trunc((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = trunc((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case BESY0:
         {
-            value = y0((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = y0((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case BESY1:
         {
-            value = y1((F)pop_t(outputstack,o_stackidx,o_stacksize,nt));
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            value = y1((F)pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case BESYN:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (I)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (I)pop_t(outputstack,o_stackidx,nt);
             value = yn((I)v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
 
@@ -1022,28 +1015,28 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I &o_sta
         //Syscall operations
         case PRINTC:
         {
-            char char_v = (char)(long long)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            char char_v = (char)(long long)pop_t(outputstack, o_stackidx, nt);
             printf("%c",char_v);
             break;
         }
         case PRINTCT:
         {
-            char char_v = (char)(long long)pop_t(outputstack, o_stackidx, o_stacksize, nt);
-            long long thread = (long long)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            char char_v = (char)(long long)pop_t(outputstack, o_stackidx, nt);
+            long long thread = (long long)pop_t(outputstack, o_stackidx, nt);
             if (thread==variables.TID)
                 printf("%c",char_v);
             break;
         }
         case PRINTF:
         {
-            value = (F)(long long)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            value = (F)(long long)pop_t(outputstack, o_stackidx, nt);
             printf("%f",value);
             break;
         }
         case PRINTFT:
         {
-            value = (F)(long long)pop_t(outputstack, o_stackidx, o_stacksize, nt);
-            long long thread = (long long)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            value = (F)(long long)pop_t(outputstack, o_stackidx, nt);
+            long long thread = (long long)pop_t(outputstack, o_stackidx, nt);
             if (thread==variables.TID)
                 printf("%f",value);
             break;
@@ -1056,17 +1049,17 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I &o_sta
             case OPINTEGRATE: 
             {   
                 if(mode==0) {
-                    I intmethod = (I) pop_t(outputstack, o_stackidx, o_stacksize, nt);
-                    I maxsteps  = (I) pop_t(outputstack, o_stackidx, o_stacksize, nt);
-                    F accuracy  = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
-                    //I nofvars   = (I) pop_t(outputstack, o_stackidx, o_stacksize, nt); // Number of other variables function takes (implement later)
-                    I functype  = (I) pop_t(outputstack, o_stackidx, o_stacksize, nt); // Whether to use in-built or user-defined function.
-                    long long function = (long long) pop_t(outputstack, o_stackidx, o_stacksize, nt);
-                    F ulim      = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
-                    F llim      = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+                    I intmethod = (I) pop_t(outputstack, o_stackidx, nt);
+                    I maxsteps  = (I) pop_t(outputstack, o_stackidx, nt);
+                    F accuracy  = (F)pop_t(outputstack, o_stackidx, nt);
+                    //I nofvars   = (I) pop_t(outputstack, o_stackidx, nt); // Number of other variables function takes (implement later)
+                    I functype  = (I) pop_t(outputstack, o_stackidx, nt); // Whether to use in-built or user-defined function.
+                    long long function = (long long) pop_t(outputstack, o_stackidx, nt);
+                    F ulim      = (F)pop_t(outputstack, o_stackidx, nt);
+                    F llim      = (F)pop_t(outputstack, o_stackidx, nt);
                     value = integrate(intmethod,maxsteps,accuracy,functype,function,llim,ulim,
-                                    outputstack, o_stackidx, o_stacksize, nt);
-                    push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+                                    outputstack, o_stackidx, nt);
+                    push_t(outputstack,o_stackidx, value, nt);
                 }
                 break;
             }
@@ -1077,292 +1070,292 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I &o_sta
         // Load Variable Operations
         case LDA:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.a, nt);
+            push_t(outputstack, o_stackidx, variables.a, nt);
             break;
         }  
         case LDB:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.b, nt);
+            push_t(outputstack, o_stackidx, variables.b, nt);
             break;
         }
         case LDC:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.c, nt);
+            push_t(outputstack, o_stackidx, variables.c, nt);
             break;
         }
         case LDD:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.d, nt);
+            push_t(outputstack, o_stackidx, variables.d, nt);
             break;
         }
         case LDE:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.e, nt);
+            push_t(outputstack, o_stackidx, variables.e, nt);
             break;
         }
         case LDF:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.f, nt);
+            push_t(outputstack, o_stackidx, variables.f, nt);
             break;
         }
         case LDG:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.g, nt);
+            push_t(outputstack, o_stackidx, variables.g, nt);
             break;
         }
         case LDH:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.h, nt);
+            push_t(outputstack, o_stackidx, variables.h, nt);
             break;
         }
         case LDI:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.i, nt);
+            push_t(outputstack, o_stackidx, variables.i, nt);
             break;
         }
         case LDJ:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.j, nt);
+            push_t(outputstack, o_stackidx, variables.j, nt);
             break;
         }
         case LDK:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.k, nt);
+            push_t(outputstack, o_stackidx, variables.k, nt);
             break;
         }
         case LDL:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.l, nt);
+            push_t(outputstack, o_stackidx, variables.l, nt);
             break;
         }
         case LDM:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.m, nt);
+            push_t(outputstack, o_stackidx, variables.m, nt);
             break;
         }
         case LDN:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.n, nt);
+            push_t(outputstack, o_stackidx, variables.n, nt);
             break;
         }
         case LDO:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.o, nt);
+            push_t(outputstack, o_stackidx, variables.o, nt);
             break;
         }
         case LDP:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.p, nt);
+            push_t(outputstack, o_stackidx, variables.p, nt);
             break;
         }
         case LDQ:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.q, nt);
+            push_t(outputstack, o_stackidx, variables.q, nt);
             break;
         }
         case LDR:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.r, nt);
+            push_t(outputstack, o_stackidx, variables.r, nt);
             break;
         }
         case LDS:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.s, nt);
+            push_t(outputstack, o_stackidx, variables.s, nt);
             break;
         }
         case LDT:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.t, nt);
+            push_t(outputstack, o_stackidx, variables.t, nt);
             break;
         }
         case LDU:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.u, nt);
+            push_t(outputstack, o_stackidx, variables.u, nt);
             break;
         }
         case LDV:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.v, nt);
+            push_t(outputstack, o_stackidx, variables.v, nt);
             break;
         }
         case LDW:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.w, nt);
+            push_t(outputstack, o_stackidx, variables.w, nt);
             break;
         }
         case LDX:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.x, nt);
+            push_t(outputstack, o_stackidx, variables.x, nt);
             break;
         }
         case LDY:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.y, nt);
+            push_t(outputstack, o_stackidx, variables.y, nt);
             break;
         }
         case LDZ:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.z, nt);
+            push_t(outputstack, o_stackidx, variables.z, nt);
             break;
         }
         case LDDX:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.dx, nt);
+            push_t(outputstack, o_stackidx, variables.dx, nt);
             break;
         }
         case LDDY:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.dy, nt);
+            push_t(outputstack, o_stackidx, variables.dy, nt);
             break;
         }
         case LDDZ:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.dz, nt);
+            push_t(outputstack, o_stackidx, variables.dz, nt);
             break;
         }
         case LDDT:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.dt, nt);
+            push_t(outputstack, o_stackidx, variables.dt, nt);
             break;
         }
         case LDA0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.a0, nt);
+            push_t(outputstack, o_stackidx, variables.a0, nt);
             break;
         }  
         case LDB0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.b0, nt);
+            push_t(outputstack, o_stackidx, variables.b0, nt);
             break;
         }
         case LDC0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.c0, nt);
+            push_t(outputstack, o_stackidx, variables.c0, nt);
             break;
         }
         case LDD0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.d0, nt);
+            push_t(outputstack, o_stackidx, variables.d0, nt);
             break;
         }
         case LDE0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.e0, nt);
+            push_t(outputstack, o_stackidx, variables.e0, nt);
             break;
         }
         case LDF0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.f0, nt);
+            push_t(outputstack, o_stackidx, variables.f0, nt);
             break;
         }
         case LDG0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.g0, nt);
+            push_t(outputstack, o_stackidx, variables.g0, nt);
             break;
         }
         case LDH0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.h0, nt);
+            push_t(outputstack, o_stackidx, variables.h0, nt);
             break;
         }
         case LDI0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.i0, nt);
+            push_t(outputstack, o_stackidx, variables.i0, nt);
             break;
         }
         case LDJ0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.j0, nt);
+            push_t(outputstack, o_stackidx, variables.j0, nt);
             break;
         }
         case LDK0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.k0, nt);
+            push_t(outputstack, o_stackidx, variables.k0, nt);
             break;
         }
         case LDL0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.l0, nt);
+            push_t(outputstack, o_stackidx, variables.l0, nt);
             break;
         }
         case LDM0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.m0, nt);
+            push_t(outputstack, o_stackidx, variables.m0, nt);
             break;
         }
         case LDN0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.n0, nt);
+            push_t(outputstack, o_stackidx, variables.n0, nt);
             break;
         }
         case LDO0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.o0, nt);
+            push_t(outputstack, o_stackidx, variables.o0, nt);
             break;
         }
         case LDP0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.p0, nt);
+            push_t(outputstack, o_stackidx, variables.p0, nt);
             break;
         }
         case LDQ0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.q0, nt);
+            push_t(outputstack, o_stackidx, variables.q0, nt);
             break;
         }
         case LDR0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.r0, nt);
+            push_t(outputstack, o_stackidx, variables.r0, nt);
             break;
         }
         case LDS0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.s0, nt);
+            push_t(outputstack, o_stackidx, variables.s0, nt);
             break;
         }
         case LDT0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.t0, nt);
+            push_t(outputstack, o_stackidx, variables.t0, nt);
             break;
         }
         case LDU0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.u0, nt);
+            push_t(outputstack, o_stackidx, variables.u0, nt);
             break;
         }
         case LDV0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.v0, nt);
+            push_t(outputstack, o_stackidx, variables.v0, nt);
             break;
         }
         case LDW0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.w0, nt);
+            push_t(outputstack, o_stackidx, variables.w0, nt);
             break;
         }
         case LDX0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.x0, nt);
+            push_t(outputstack, o_stackidx, variables.x0, nt);
             break;
         }
         case LDY0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.y0, nt);
+            push_t(outputstack, o_stackidx, variables.y0, nt);
             break;
         }
         case LDZ0:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.z0, nt);
+            push_t(outputstack, o_stackidx, variables.z0, nt);
             break;
         }
         case LDPC:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.PC, nt);
+            push_t(outputstack, o_stackidx, variables.PC, nt);
             break;
         }
         case LDTID:
         {
-            push_t(outputstack, o_stackidx, o_stacksize , variables.TID, nt);
+            push_t(outputstack, o_stackidx, variables.TID, nt);
             break;
         }
 
@@ -1371,147 +1364,147 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I &o_sta
         // Receive/Store Variable Operations
         case RCA:
         {
-            variables.a = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.a = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCB:
         {
-            variables.b = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.b = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCC:
         {
-            variables.c = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.c = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCD:
         {
-            variables.d = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.d = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCE:
         {
-            variables.e = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.e = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCF:
         {
-            variables.f = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.f = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCG:
         {
-            variables.g = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.g = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCH:
         {
-            variables.h = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.h = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCI:
         {
-            variables.i = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.i = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCJ:
         {
-            variables.j = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.j = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCK:
         {
-            variables.k = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.k = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCL:
         {
-            variables.l = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.l = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCM:
         {
-            variables.m = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.m = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCN:
         {
-            variables.n = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.n = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCO:
         {
-            variables.o = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.o = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCP:
         {
-            variables.p = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.p = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCQ:
         {
-            variables.q = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.q = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCR:
         {
-            variables.r = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.r = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCS:
         {
-            variables.s = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.s = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCT:
         {
-            variables.t = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.t = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCU:
         {
-            variables.u = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.u = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCV:
         {
-            variables.v = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.v = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCW:
         {
-            variables.w = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.w = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCX:
         {
-            variables.x = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.x = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCY:
         {
-            variables.y = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.y = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCZ:
         {
-            variables.z = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.z = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCDX:
         {
-            variables.dx = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.dx = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCDY:
         {
-            variables.dy = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.dy = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
         case RCDZ:
         {
-            variables.dz = (F)pop_t(outputstack, o_stackidx, o_stacksize, nt);
+            variables.dz = (F)pop_t(outputstack, o_stackidx, nt);
             break;
         }
     }
@@ -1521,9 +1514,9 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I &o_sta
 // Overloaded normal operation function for no variables provided, just create an empty struct and pass in.
 template<class F, class I>
 __device__
-inline void operation(long long op, double* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode) {
+inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I mode) {
     Vars<F> variables;
-    operation(op, outputstack, o_stackidx, o_stacksize, nt, mode, variables);
+    operation(op, outputstack, o_stackidx, nt, mode, variables);
 }
 
 
@@ -1531,7 +1524,7 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I &o_sta
 #if MSTACK_UNSAFE==1
 template<class F, class I>
 __device__
-inline void operation(I type, long long op, double* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode, Vars<F> &variables) {
+inline void operation(I type, long long op, double* outputstack, I &o_stackidx, I nt, I mode, Vars<F> &variables) {
     if (op==OPNULL)
         return;
     I nargs = abs(type);
@@ -1540,102 +1533,102 @@ inline void operation(I type, long long op, double* outputstack, I &o_stackidx, 
     switch(nargs) {
         case 1:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
             using fn = F(F);
             fn* func = (fn*) addr;
             value = (*func)(v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case 2:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
             using fn = F(F,F);
             fn* func = (fn*) addr;
             value = (*func)(v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case 3:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
+            v3 = (F)pop_t(outputstack,o_stackidx,nt);
             using fn = F(F,F,F);
             fn* func = (fn*) addr;
             value = (*func)(v3,v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case 4:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v4 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
+            v3 = (F)pop_t(outputstack,o_stackidx,nt);
+            v4 = (F)pop_t(outputstack,o_stackidx,nt);
             using fn = F(F,F,F,F);
             fn* func = (fn*) addr;
             value = (*func)(v4,v3,v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case 5:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v4 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v5 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
+            v3 = (F)pop_t(outputstack,o_stackidx,nt);
+            v4 = (F)pop_t(outputstack,o_stackidx,nt);
+            v5 = (F)pop_t(outputstack,o_stackidx,nt);
             using fn = F(F,F,F,F,F);
             fn* func = (fn*) addr;
             value = (*func)(v5,v4,v3,v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case 6:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v4 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v5 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v6 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
+            v3 = (F)pop_t(outputstack,o_stackidx,nt);
+            v4 = (F)pop_t(outputstack,o_stackidx,nt);
+            v5 = (F)pop_t(outputstack,o_stackidx,nt);
+            v6 = (F)pop_t(outputstack,o_stackidx,nt);
             using fn = F(F,F,F,F,F,F);
             fn* func = (fn*) addr;
             value = (*func)(v6,v5,v4,v3,v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case 7:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v4 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v5 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v6 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v7 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
+            v3 = (F)pop_t(outputstack,o_stackidx,nt);
+            v4 = (F)pop_t(outputstack,o_stackidx,nt);
+            v5 = (F)pop_t(outputstack,o_stackidx,nt);
+            v6 = (F)pop_t(outputstack,o_stackidx,nt);
+            v7 = (F)pop_t(outputstack,o_stackidx,nt);
             using fn = F(F,F,F,F,F,F,F);
             fn* func = (fn*) addr;
             value = (*func)(v7,v6,v5,v4,v3,v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
         case 8:
         {
-            v1 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v3 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v4 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v5 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v6 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v7 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
-            v8 = (F)pop_t(outputstack,o_stackidx,o_stacksize,nt);
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            v2 = (F)pop_t(outputstack,o_stackidx,nt);
+            v3 = (F)pop_t(outputstack,o_stackidx,nt);
+            v4 = (F)pop_t(outputstack,o_stackidx,nt);
+            v5 = (F)pop_t(outputstack,o_stackidx,nt);
+            v6 = (F)pop_t(outputstack,o_stackidx,nt);
+            v7 = (F)pop_t(outputstack,o_stackidx,nt);
+            v8 = (F)pop_t(outputstack,o_stackidx,nt);
             using fn = F(F,F,F,F,F,F,F,F);
             fn* func = (fn*) addr;
             value = (*func)(v8,v7,v6,v5,v4,v3,v2,v1);
-            push_t(outputstack,o_stackidx,o_stacksize, value, nt);
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
     }
@@ -1643,9 +1636,9 @@ inline void operation(I type, long long op, double* outputstack, I &o_stackidx, 
 // Overloaded function-pointer operation function for no variables provided, just create an empty struct and pass in.
 template<class F, class I>
 __device__
-inline void operation(I type, long long op, double* outputstack, I &o_stackidx, I &o_stacksize, I nt, I mode) {
+inline void operation(I type, long long op, double* outputstack, I &o_stackidx, I nt, I mode) {
     Vars<F> variables;
-    operation(type, op, outputstack, o_stackidx, o_stacksize, nt, mode, variables);
+    operation(type, op, outputstack, o_stackidx, nt, mode, variables);
 }
 #endif
 #endif
