@@ -39,32 +39,32 @@ void eval(I type, I* stack, I &stackidx, I &stacksize, long long* opstack, I &op
 F* valuestack, I &valuestackidx, double* outputstack, I &outputstackidx, 
 L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
 {
-    long long op;
-    F value;
+    long long op = pop(opstack,opstackidx);
+    F value = pop(valuestack, valuestackidx);
 
     // Is an ordinary operation
     if (type==0) {
-        op = pop(opstack,opstackidx);
+        //op = pop(opstack,opstackidx);
         operation<F>(op, outputstack, outputstackidx, nt, 0, variables);
         return;
     }
     // Is a value
     else if (type==1) {
-        value = pop(valuestack, valuestackidx);
+        //value = pop(valuestack, valuestackidx);
         push_t(outputstack, outputstackidx, value, nt);
         return;
     }
     // JUMP/Goto statement
     else if (type==2) {
         value = pop_t(outputstack, outputstackidx, nt);
-        jmp(stack, stackidx, stacksize, (I)value);
+        jmp(stack, stackidx, stacksize, opstackidx, valuestackidx, (I)value);
     }
     // JUMP IF == 0 / conditional goto statement
     else if (type==3) {
         value = pop_t(outputstack, outputstackidx, nt);
         I cond = (I)pop_t(outputstack, outputstackidx, nt);
         if (cond==0) {
-            jmp(stack, stackidx, stacksize, (I)value);
+            jmp(stack, stackidx, stacksize, opstackidx, valuestackidx, (I)value);
         }
         else {
         }
@@ -96,7 +96,7 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
         i = i + 1;
         loop_stack[5*(loop_idx-1)+3] = i;
         // If loop has reached end decrement loop_idx and return
-        if (i==imax){
+        if (i>=imax){
             loop_idx = loop_idx - 1;
             return;
         }
@@ -137,6 +137,7 @@ F* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L tid, 
     variables.TID = tid;
 
     // array + idx for nested loop "slots"
+    // Change this in future to be implementation-allocated.
     I loop_stack[5*MSTACK_LOOP_NEST_LIMIT];
     I loop_idx = 0;
 

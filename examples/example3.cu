@@ -19,8 +19,8 @@ int main()
     dim3 Block(1,threads,1);
 
     // intmethod, maxsteps, accuracy, functype, function, upperlim, lowerlim
-    float values[7] = {1,1000,0.0001,1,387288,3.141,0}; // 0x7E3
-    long long ops[1] = {0xF30};
+    float values[8] = {0,1,1000,0.0001,1,387288,3.141,0}; // 0x7E3
+    long long ops[8] = {0xF30,0,0,0,0,0,0,0};
     int stack[8] = {0,1,1,1,1,1,1,1};
     double output[10*threads*blocks] =   {0};
 
@@ -28,9 +28,9 @@ int main()
     int* stack_dev = NULL;
     int stacksize = 8;
     long long* opstack_dev = NULL;
-    int opstacksize = 1;
+    int opstacksize = 8;
     float* valuesstack_dev = NULL;
-    int valuestacksize = 7;
+    int valuestacksize = 8;
     double* outputstack_dev = NULL;
     int outputstacksize = 0;
 

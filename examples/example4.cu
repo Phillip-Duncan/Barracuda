@@ -21,8 +21,8 @@ int main()
 
     // Two nested recursive for loops within another for loop. Resultant Sum = 205.
     // Equivalant to: int a=5; for(int i=0;i<10;i++){for(int j=0;j<10;j++){a++;} for(int k=0;k<10;k++){a++;}}
-    float values[9] = {1,10,0,1,10,0,10,0,5};
-    long long ops[2] = {0x3CC,0x3CC};
+    float values[17] = {0,0,0,1,0,10,0,0,0,1,0,10,0,0,10,0,5};
+    long long ops[17] = {0,0,0x3CC,0,0,0,0,0,0x3CC,0,0,0,0,0,0,0,0};
     int stack[17] = {100,100,0,1,99,1,1,100,0,1,99,1,1,99,1,1,1};
     double output[10*threads*blocks] =   {0};
 
@@ -30,9 +30,9 @@ int main()
     int* stack_dev = NULL;
     int stacksize = 17;
     long long* opstack_dev = NULL;
-    int opstacksize = 2;
+    int opstacksize = 17;
     float* valuesstack_dev = NULL;
-    int valuestacksize = 9;
+    int valuestacksize = 17;
     double* outputstack_dev = NULL;
     int outputstacksize = 0;
 

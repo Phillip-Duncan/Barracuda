@@ -22,8 +22,10 @@ int main()
     // Two unconditional jumps and a single conditional jump.
     // First jump brings sp down to conditonal jump, where conditionally jumps up to operation +1 and then
     // jumps to end of program.
-    float values[6] = {10,1,3,0,7,5};
-    long long ops[1] = {0x3CC};
+    //float values[6] = {10,1,3,0,7,5};
+    //long long ops[1] = {0x3CC};
+    float values[11] = {0,0,3,0,0,10,0,1,0,7,5};
+    long long ops[11] = {0,0,0,0,0,0,0x3CC,0,0,0,0};
     int stack[11] = {20,3,1,1,2,1,0,1,2,1,1};
     double output[6*threads*blocks] =   {0};
 
@@ -31,9 +33,9 @@ int main()
     int* stack_dev = NULL;
     int stacksize = 11;
     long long* opstack_dev = NULL;
-    int opstacksize = 1;
+    int opstacksize = 11;
     float* valuesstack_dev = NULL;
-    int valuestacksize = 6;
+    int valuestacksize = 11;
     double* outputstack_dev = NULL;
     int outputstacksize = 0;
 

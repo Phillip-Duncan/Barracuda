@@ -34,6 +34,19 @@ enum OPCODES {
     READ, WRITE, ADD_P, SUB_P,
     TERNARY,
 
+    // Extra Memory instruction codes (Enum follows from Ternary)
+    READ_U8, READ_U16, READ_U32, READ_U64,
+    READ_I8, READ_I16, READ_I32, READ_I64,
+    READ_F8, READ_F16, READ_F32, READ_F64,
+    READ_C8, READ_C16, READ_C32, READ_C64,
+    READ_UC8, READ_UC16, READ_UC32, READ_UC64,
+
+    WRITE_U8, WRITE_U16, WRITE_U32, WRITE_U64,
+    WRITE_I8, WRITE_I16, WRITE_I32, WRITE_I64,
+    WRITE_F8, WRITE_F16, WRITE_F32, WRITE_F64,
+    WRITE_C8, WRITE_C16, WRITE_C32, WRITE_C64,
+    WRITE_UC8, WRITE_UC16, WRITE_UC32, WRITE_UC64,
+
     // Mathematical operator opcodes 
     // https://docs.nvidia.com/cuda/cuda-math-api/group__CUDA__MATH__DOUBLE.html#group__CUDA__MATH__DOUBLE
     ACOS = 0x798, ACOSH, ASIN, ASINH,
@@ -185,12 +198,14 @@ inline void push_t(T* stack, I &stackidx, U value, I nt) {
 // Jump/GOTO position on instruction stack
 template<class T, class I>
 __device__
-inline void jmp(T* stack, I &stackidx, I stacksize, I pos) {
+inline void jmp(T* stack, I &stackidx, I stacksize, I &opstackidx, I &valuestackidx, I pos) {
     // Make sure goto is bounded between 0 and alloc(stack), otherwise just go to end (or beginning if <0)
     pos = pos >= 0 ? pos : 0;
     pos = pos <= stacksize ? pos : stacksize;
     // Adjust stackidx to "goto" pos.
     stackidx  = (I)(stacksize - pos);
+    opstackidx = stackidx;
+    valuestackidx = stackidx;
     // Adjust program counter to pos.
     //PC = pos;
     return;

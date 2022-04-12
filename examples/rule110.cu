@@ -20,26 +20,28 @@ int main()
 
     float board_size = 50;
     float bs = board_size;
-    // 16
-    float values[22] = {1,110,1*4,7,1,1*4,
-                        (bs-1),1,1*4,1*4,1,10,32,42,1*4,(bs),0,(bs-2),0,1,(bs-2)*4,(bs)*4};
 
-    long long ops[38] = {DROP,DROP,SWAP,WRITE,AND,RSHIFT,SWAP,OVER,SUB_P,OVER,OR,READ,OVER,AND,LSHIFT,SWAP,ADD_P,
-                        ADD_P,OVER,OR,READ,ADD_P,OVER,LSHIFT,READ,DUP,PRINTC,DROP,PRINTC,TERNARY,READ,DUP,
-                        ADD_P,DUP,WRITE,ADD_P,DUP,MALLOC};
-    // 43
+    float values[66] = {0,0,0,0,0,0,0,1,0,0,110,0,0,1*4,0,0,0,0,0,7,0,1,0,0,1*4,0,(bs-1),
+                        1,0,1*4,0,0,0,0,1*4,0,0,1,0,0,0,10,0,0,0,0,32,42,0,0,0,1*4,0,(bs),
+                        0,0,0,(bs-2),0,0,1,0,(bs-2)*4,0,0,(bs+1)*4};
+
+    long long ops[66] = {0,DROP,DROP,0,SWAP,WRITE,AND,0,RSHIFT,SWAP,0,OVER,SUB_P,0,OVER,OR,READ,OVER,AND,0,LSHIFT,0,SWAP,ADD_P,
+                        0,0,0,0,ADD_P,0,OVER,OR,READ,ADD_P,0,OVER,LSHIFT,0,READ,DUP,PRINTC,0,DROP,0,PRINTC,TERNARY,0,0,READ,DUP,
+                        ADD_P,0,0,0,0,DUP,0,0,0,WRITE,0,ADD_P,0,DUP,MALLOC,0};
+
     int stack[66] = {100,0,0,100,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,1,0,1,0,0,1,99,
                         1,1,0,1,0,0,0,0,1,0,0,1,0,0,0,1,0,100,
                         0,0,1,1,0,0,0,1,99,1,1,0,99,1,1,0,1,0,1,0,0,1};
+
     double output[100*threads*blocks] =   {0};
 
     // Allocate some memory for stack expressions
     int* stack_dev = NULL;
     int stacksize = 66;
     long long* opstack_dev = NULL;
-    int opstacksize = 38;
+    int opstacksize = 66;
     float* valuesstack_dev = NULL;
-    int valuestacksize = 22;
+    int valuestacksize = 66;
     double* outputstack_dev = NULL;
     int outputstacksize = 0;
 
