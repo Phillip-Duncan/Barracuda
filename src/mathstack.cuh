@@ -120,7 +120,7 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
 
 template<class I, class F, class L>
 __device__
-inline F evaluateStackExpr(I* stack, I stacksize, long long* opstack, long long opstacksize,
+inline F evaluateStackExpr(I* stack, I stacksize, long long* opstack, I opstacksize,
 F* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L tid, I nt, Vars<F> &variables ) 
 {
 
@@ -164,7 +164,7 @@ F* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L tid, 
 // Function overload for when expression contains no Variables and struct not provided.
 template<class I, class F, class L>
 __device__
-inline F evaluateStackExpr(I* stack, I stacksize, long long* opstack, long long opstacksize,
+inline F evaluateStackExpr(I* stack, I stacksize, long long* opstack, I opstacksize,
 F* valuestack, I valuestacksize, F* outputstack, I outputstacksize, L tid, I nt ) {
     Vars<F> Variables;
     return evaluateStackExpr(stack, stacksize, opstack, opstacksize,
