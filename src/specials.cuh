@@ -4,9 +4,9 @@
  * @brief Implementation of some special functions not included in the standard CUDA library. 
  *        Note: These may be poorly optimized and likely have poor performance on GPU architectures.
  * @version 0.1
- * @date 2021-09-05
+ * @date 2022-06-30
  * 
- * @copyright Copyright (c) 2021
+ * @copyright Copyright (c) 2022
  * 
  */
 

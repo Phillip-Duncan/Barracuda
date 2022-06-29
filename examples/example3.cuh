@@ -1,7 +1,7 @@
 #ifndef _EXAMPLE3_CUH
 #define _EXAMPLE3_CUH
 
-#include "mathstack.cuh"
+#include "barracuda.cuh"
 #include <stdio.h>
 #include <iostream>
 #include <cuda_runtime.h>

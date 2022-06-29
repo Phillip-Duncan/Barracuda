@@ -1,17 +1,17 @@
 /**
- * @file mathstack.cuh
+ * @file barracuda.cuh
  * @author Phillip Duncan (phillip.duncan-gelder@pg.canterbury.ac.nz)
- * @brief Header-only stack-based equation solver 
+ * @brief Header-only pseudo-stack-based equation solver 
  * @version 0.1
- * @date 2021-09-05
+ * @date 2022-06-30
  * 
- * @copyright Copyright (c) 2021
+ * @copyright Copyright (c) 2022
  * 
  */
 
 
-#ifndef _MATHSTACK_CUH
-#define _MATHSTACK_CUH
+#ifndef _BARRACUDA_CUH
+#define _BARRACUDA_CUH
 
 #ifndef MSTACK_UNSAFE
 #define MSTACK_UNSAFE 1
@@ -68,6 +68,17 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
         }
         else {
         }
+    }
+    // Combinational instructions.
+    else if (type==4) {
+        push_t(outputstack, outputstackidx, value, nt);
+        operation<F>(op, outputstack, outputstackidx, nt, 0, variables);
+        return;
+    }
+    else if (type==5) {
+        operation<F>(op, outputstack, outputstackidx, nt, 0, variables);
+        push_t(outputstack, outputstackidx, value, nt);
+        return;
     }
     // function pointer operation
     #if MSTACK_UNSAFE==1

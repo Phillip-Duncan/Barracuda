@@ -1,11 +1,11 @@
 /**
  * @file stack.cuh
  * @author Phillip Duncan (phillip.duncan-gelder@pg.canterbury.ac.nz)
- * @brief Separate header containing all the stack-based functions, operations, OPCODES to keep things in mathstack simpler.
+ * @brief Separate header containing all the stack-based functions, operations, OPCODES to keep things in barracuda simpler.
  * @version 0.1
- * @date 2021-09-05
+ * @date 2022-06-30
  * 
- * @copyright Copyright (c) 2021
+ * @copyright Copyright (c) 2022
  * 
  */
 
@@ -21,6 +21,9 @@ enum OPCODES {
 
     // Null instruction
     OPNULL = 0x0,
+
+    // Read and write from specific location on stack.
+    SREAD = 0x1, SWRITE,
 
     // Basic opcodes
     ADD = 0x3CC, SUB, MUL,
@@ -235,6 +238,21 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         // Null operation
         case OPNULL:
         {
+            break;
+        }
+        
+        // Stack read and write instructions
+        case SREAD:
+        {
+            push_t(outputstack,o_stackidx, 
+            outputstack[__double_as_longlong(pop_t(outputstack,o_stackidx,nt))],nt);
+            break;
+        }
+        case SWRITE:
+        {
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv2 = pop_t(outputstack,o_stackidx,nt);
+            outputstack[__double_as_longlong(lv2)] = lv1;
             break;
         }
 
