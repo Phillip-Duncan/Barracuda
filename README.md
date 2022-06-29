@@ -1,6 +1,6 @@
-# MathStack
+# Barracuda
 
-A simple header-only stack-based equation solver capable of running on the GPU in stacksize-linear time. Evaluates inversely stored reverse polish notation (RPN) instructions from input stacks.
+A simple header-only pseudo-stack-based equation solver capable of running on the GPU in 'effective' stacksize-linear time. Evaluates inversely stored reverse polish notation (RPN) instructions from input stacks.
 
 ## Required Inputs
 
