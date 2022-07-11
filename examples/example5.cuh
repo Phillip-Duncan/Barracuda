@@ -21,7 +21,7 @@ void example5_kernel(int* stack, int stacksize, long long* opstack, int opstacks
     unsigned int tid = (blockIdx.x * blockDim.y) + (blockIdx.y * gridDim.x * blockDim.y) + threadIdx.y;
 
     Vars<F> Variables;
-    Variables.a = 1.569492;
+    //Variables.a = 1.569492;
 
     for(int i=0;i<1;i++) {
         F test = evaluateStackExpr(stack,s_size,opstack,op_size,

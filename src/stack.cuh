@@ -107,13 +107,23 @@ enum OPCODES {
     RCN, RCO, RCP, RCQ, RCR,
     RCS, RCT, RCU, RCV, RCW,
     RCX, RCY, RCZ,
-    RCDX, RCDY, RCDZ, RCDT
+    RCDX, RCDY, RCDZ, RCDT,
+
+    // Lower (0) and upper (1) ranges for Load and Store into Nth variate userspace.
+    LDNX0 = 0xF4240,
+    LDNX1 = 0x4C4B40,
+
+    RCNX0 = 0x4C4B41,
+    RCNX1 = 0x895441
+
+
+
 };
 
 template<class F>
-struct __align__(256) Vars {
+struct __align__(64) Vars {
     __host__ __device__ Vars(): 
-    
+    /*
     a(0),b(0),c(0),d(0),e(0),
     f(0),g(0),h(0),i(0),j(0),
     k(0),l(0),m(0),n(0),o(0),
@@ -127,11 +137,12 @@ struct __align__(256) Vars {
     l0(0),m0(0),n0(0),o0(0),
     p0(0),q0(0),r0(0),s0(0),
     t0(0),u0(0),v0(0),w0(0),
-    x0(0),y0(0),z0(0),
+    x0(0),y0(0),z0(0),*/
 
     PC(0), TID(0) { }
 
     // LD and RC capable variables
+    /*
     F a,b,c,d,e,f,g,h,
     i,j,k,l,m,n,o,p,q,
     r,s,t,u,v,w,x,y,z,
@@ -141,14 +152,13 @@ struct __align__(256) Vars {
     F dt,a0,b0,c0,d0,e0,
     f0,g0,h0,i0,j0,k0,l0,
     m0,n0,o0,p0,q0,r0,s0,
-    t0,u0,v0,w0,x0,y0,z0;
+    t0,u0,v0,w0,x0,y0,z0; */
 
     // Internal use only, but can be loaded
     unsigned int PC, TID;
 
-    // Pointer storage, storage must be initialized on device (cudaMalloc),
-    // then allocated device pointer set to MEM_REG, before struct copied to device. 
-    F** MEM_REG;
+    // Allocated User-space
+    F* userspace;
 };
 
 template<class U, class I>
@@ -1101,6 +1111,7 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
 
 
         // Load Variable Operations
+        /*
         case LDA:
         {
             push_t(outputstack, o_stackidx, variables.a, nt);
@@ -1381,6 +1392,7 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
             push_t(outputstack, o_stackidx, variables.z0, nt);
             break;
         }
+        */
         case LDPC:
         {
             push_t(outputstack, o_stackidx, variables.PC, nt);
@@ -1395,6 +1407,7 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
 
 
         // Receive/Store Variable Operations
+        /*
         case RCA:
         {
             variables.a = (F)pop_t(outputstack, o_stackidx, nt);
@@ -1539,8 +1552,22 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         {
             variables.dz = (F)pop_t(outputstack, o_stackidx, nt);
             break;
+        }*/
+        default:
+        {
+            if (op >= LDNX0 && op <= LDNX1) {
+                push_t(outputstack, o_stackidx, (double)variables.userspace[variables.TID + (op-1000000)*nt], nt);
+            }
+            else if (op >= RCNX0 && op < RCNX1) {
+                variables.userspace[variables.TID + (op-1000000)*nt] = (F)pop_t(outputstack, o_stackidx, nt);
+            }
+            else {
+                break;
+            }
+            break;
         }
     }
+
 }
 
 

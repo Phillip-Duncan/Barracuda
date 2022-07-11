@@ -11,7 +11,8 @@
 template<class F>
 __global__ 
 void example2_kernel(int* stack, int stacksize, long long* opstack, int opstacksize,
-    F* valuestack, int valuestacksize, double* outputstack, int outputstacksize, int Nthreads) 
+    F* valuestack, int valuestacksize, double* outputstack, int outputstacksize, int Nthreads,
+    Vars<F>* vars) 
 {
     int s_size    = stacksize;
     int op_size  = opstacksize;
@@ -20,9 +21,9 @@ void example2_kernel(int* stack, int stacksize, long long* opstack, int opstacks
 
     unsigned int tid = (blockIdx.x * blockDim.y) + (blockIdx.y * gridDim.x * blockDim.y) + threadIdx.y;
 
-    Vars<F> Variables;
-    Variables.a = 1.569492;
-    Variables.b = 1.5;
+    Vars<F> Variables = vars[tid];
+
+    Variables.userspace[tid] = 1.569492;
 
     F (*sin_ptr)(F) = &sin;
     F (*atan2_ptr)(F,F) = &atan2;

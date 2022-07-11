@@ -20,7 +20,7 @@ int main()
 
 
     float values[10] = {0,0,0,0,0,0,0,5,6,10};
-    long long ops[10] = {703360,0x3CE,0x12FD,0x3CE,0x12FD,0x7E4,0x3CC,0,0,0};
+    long long ops[10] = {471736,MUL,LDNX0,MUL,LDNX0,SIN,ADD,0,0,0};
     int stack[10] = {-2,0,0,0,0,0,0,1,1,1};
     double output[6*threads*blocks] =   {0};
 
@@ -47,13 +47,33 @@ int main()
     cudaMemset(outputstack_dev,0,6*threads*blocks*sizeof(double));
 
 
+    // Allocate some user-space
+    int user_space_size = 64*threads*blocks;
+
+    float* user_space_dev = NULL; 
+    cudaMalloc((void**)&user_space_dev,user_space_size*sizeof(float));
+    cudaMemset((void**)&user_space_dev,0,user_space_size*sizeof(float));
+
+    Vars<float> vars;
+    Vars<float>* variables_host = (Vars<float>*)malloc(threads* blocks * sizeof(vars));
+    Vars<float>* variables_dev = NULL;
+    
+
+    for (int i=0; i<threads*blocks; i++) {
+        variables_host[i].userspace = user_space_dev;
+    }
+
+    cudaMalloc((void**)&variables_dev,threads*blocks*sizeof(vars));
+    cudaMemcpy(variables_dev, variables_host, threads*blocks*sizeof(vars), cudaMemcpyHostToDevice);
+
+
     // Launch example kernel
     typedef std::chrono::high_resolution_clock Clock;
     auto t1 = Clock::now();
 
     for (int j=0;j<1;j++) {
         example2_kernel<<<Grid,Block>>>(stack_dev,stacksize,opstack_dev,opstacksize,
-        valuesstack_dev,valuestacksize,outputstack_dev,outputstacksize,threads*blocks);
+        valuesstack_dev,valuestacksize,outputstack_dev,outputstacksize,threads*blocks, variables_dev);
         cudaDeviceSynchronize();
     }
 
