@@ -33,6 +33,22 @@
     #include "specials.cuh"
 #endif
 
+enum Instructions {
+    OP = 0,
+    VALUE,
+    JUMP,
+    JUMPIFZERO,
+
+    // Combination instructions (Single instruction, multiple actions).
+    SI_VALUE_OP,
+    SI_OP_VALUE,
+
+    // Built-in bounded for loop instructions.
+    LOOP_ENTRY = 99,
+    LOOP_EXIT
+
+};
+
 template<class I, class F, class L>
 __device__
 void eval(I type, I* stack, I &stackidx, I &stacksize, long long* opstack, I &opstackidx,
@@ -43,23 +59,23 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
     F value = pop(valuestack, valuestackidx);
 
     switch(type) {
-        case 0: 
+        case Instructions::OP: 
         {
             operation<F>(op, outputstack, outputstackidx, nt, 0, variables);
             break;
         }
-        case 1:
+        case Instructions::VALUE:
         {
             push_t(outputstack, outputstackidx, value, nt);
             break;
         }
-        case 2: 
+        case Instructions::JUMP: 
         {
             value = pop_t(outputstack, outputstackidx, nt);
             jmp(stack, stackidx, stacksize, opstackidx, valuestackidx, (I)value);
             break;
         }
-        case 3:
+        case Instructions::JUMPIFZERO:
         {
             value = pop_t(outputstack, outputstackidx, nt);
             I cond = (I)pop_t(outputstack, outputstackidx, nt);
@@ -70,19 +86,19 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
             }
             break;
         }
-        case 4:
+        case Instructions::SI_VALUE_OP:
         {
             push_t(outputstack, outputstackidx, value, nt);
             operation(op, outputstack, outputstackidx, nt, 0, variables);
             break;
         }
-        case 5: 
+        case Instructions::SI_OP_VALUE: 
         {
             operation(op, outputstack, outputstackidx, nt, 0, variables);
             push_t(outputstack, outputstackidx, value, nt);
             break;
         }
-        case 99: 
+        case Instructions::LOOP_ENTRY: 
         {
             I imax = (I)pop_t(outputstack, outputstackidx, nt);
             I i = (I)pop_t(outputstack, outputstackidx, nt);
@@ -95,7 +111,7 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
             loop_idx = loop_idx + 1;
             break;
         }
-        case 100:
+        case Instructions::LOOP_EXIT:
         {
             // Compare values of i,imax to see whether loop has ended or continues
             I i = loop_stack[5*(loop_idx-1)+3];
@@ -109,16 +125,12 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
             // Otherwise goto start of loop.
             else {
                 // Reset program counter
-                //variables.PC = variables.PC + stackidx - loop_stack[5*(loop_idx-1)];
                 variables.PC = stacksize - loop_stack[5*(loop_idx-1)];
 
                 // Swap indicies/sizes
                 stackidx = loop_stack[5*(loop_idx-1)];
-                //stacksize = loop_stack[5*(loop_idx-1)];
                 opstackidx = loop_stack[5*(loop_idx-1) + 1];
-                //opstacksize = loop_stack[5*(loop_idx-1) + 1];
                 valuestackidx = loop_stack[5*(loop_idx-1) + 2];
-                //valuestacksize = loop_stack[5*(loop_idx-1) + 2];
             }
             break;
         }
