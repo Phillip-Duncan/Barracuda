@@ -37,6 +37,9 @@ enum OPCODES {
     READ, WRITE, ADD_P, SUB_P,
     TERNARY,
 
+    // Simplified Compare opcodes
+    EQ, GT, GTEQ, LT, LTEQ, 
+
     // Extra Memory instruction codes (Enum follows from Ternary)
     READ_U8, READ_U16, READ_U32, READ_U64,
     READ_I8, READ_I16, READ_I32, READ_I64,
@@ -439,6 +442,49 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
             double lv3 = pop_t(outputstack,o_stackidx,nt);
             lvalue = (lv3>0) ? lv2:lv1;
             push_t(outputstack,o_stackidx, lvalue , nt);
+            break;
+        }
+
+
+        // Compare Operators
+        case EQ: 
+        {
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv2 = pop_t(outputstack,o_stackidx,nt);
+            lvalue = lv1 == lv2;
+            push_t(outputstack,o_stackidx,lvalue,nt);
+            break;
+        }
+        case GT: 
+        {
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv2 = pop_t(outputstack,o_stackidx,nt);
+            lvalue = lv1 < lv2;
+            push_t(outputstack,o_stackidx,lvalue,nt);
+            break;
+        }
+        case GTEQ: 
+        {
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv2 = pop_t(outputstack,o_stackidx,nt);
+            lvalue = lv1 <= lv2;
+            push_t(outputstack,o_stackidx,lvalue,nt);
+            break;
+        }
+        case LT: 
+        {
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv2 = pop_t(outputstack,o_stackidx,nt);
+            lvalue = lv1 > lv2;
+            push_t(outputstack,o_stackidx,lvalue,nt);
+            break;
+        }
+        case LTEQ: 
+        {
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv2 = pop_t(outputstack,o_stackidx,nt);
+            lvalue = lv1 >= lv2;
+            push_t(outputstack,o_stackidx,lvalue,nt);
             break;
         }
 
