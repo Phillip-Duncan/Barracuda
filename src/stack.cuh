@@ -234,14 +234,14 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         case SREAD:
         {
             push_t(outputstack,o_stackidx, 
-            outputstack[__double_as_longlong(pop_t(outputstack,o_stackidx,nt))],nt);
+            outputstack[int(pop_t(outputstack,o_stackidx,nt))*nt + variables.TID],nt);
             break;
         }
         case SWRITE:
         {
             lv1 = pop_t(outputstack,o_stackidx,nt);
             lv2 = pop_t(outputstack,o_stackidx,nt);
-            outputstack[__double_as_longlong(lv2)] = lv1;
+            outputstack[int(lv2)*nt + variables.TID] = lv1;
             break;
         }
 
