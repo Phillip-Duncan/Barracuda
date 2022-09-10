@@ -21,7 +21,7 @@ int main()
     float board_size = 50;
     float bs = board_size;
 
-    float values[66] = {0,0,0,0,0,0,0,1,0,0,110,0,0,1*4,0,0,0,0,0,7,0,1,0,0,1*4,0,(bs-1),
+    double values[66] = {0,0,0,0,0,0,0,1,0,0,110,0,0,1*4,0,0,0,0,0,7,0,1,0,0,1*4,0,(bs-1),
                         1,0,1*4,0,0,0,0,1*4,0,0,1,0,0,0,10,0,0,0,0,32,42,0,0,0,1*4,0,(bs),
                         0,0,0,(bs-2),0,0,1,0,(bs-2)*4,0,0,(bs+1)*4};
 
@@ -40,7 +40,7 @@ int main()
     int stacksize = 66;
     long long* opstack_dev = NULL;
     int opstacksize = 66;
-    float* valuesstack_dev = NULL;
+    double* valuesstack_dev = NULL;
     int valuestacksize = 66;
     double* outputstack_dev = NULL;
     int outputstacksize = 0;
@@ -51,8 +51,8 @@ int main()
     cudaMalloc((void**)&opstack_dev,opstacksize*sizeof(long long));
     cudaMemcpy(opstack_dev,ops,opstacksize*sizeof(long long),cudaMemcpyHostToDevice);
 
-    cudaMalloc((void**)&valuesstack_dev,valuestacksize*sizeof(float));
-    cudaMemcpy(valuesstack_dev,values,valuestacksize*sizeof(float),cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&valuesstack_dev,valuestacksize*sizeof(double));
+    cudaMemcpy(valuesstack_dev,values,valuestacksize*sizeof(double),cudaMemcpyHostToDevice);
 
     cudaMalloc((void**)&outputstack_dev,100*threads*blocks*sizeof(double));
     cudaMemset(outputstack_dev,0,100*threads*blocks*sizeof(double));

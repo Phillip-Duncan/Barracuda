@@ -18,7 +18,7 @@ int main()
     dim3 Grid(blocks,1,1);
     dim3 Block(1,threads,1);
 
-    float values[10] = {0,0,0,0,0,0,0,5,6,10};
+    double values[10] = {0,0,0,0,0,0,0,5,6,10};
     long long ops[10] = {0x3CF,0x3CE,1000000,0x3CE,1000000,0x7E4,0x3CC,0,0,0};
     int stack[10] = {0,0,0,0,0,0,0,1,1,1};
     double output[6*threads*blocks] =   {0};
@@ -28,7 +28,7 @@ int main()
     int stacksize = 10;
     long long* opstack_dev = NULL;
     int opstacksize = 10;
-    float* valuesstack_dev = NULL;
+    double* valuesstack_dev = NULL;
     int valuestacksize = 10;
     double* outputstack_dev = NULL;
     int outputstacksize = 0;
@@ -39,8 +39,8 @@ int main()
     cudaMalloc((void**)&opstack_dev,opstacksize*sizeof(long long));
     cudaMemcpy(opstack_dev,ops,opstacksize*sizeof(long long),cudaMemcpyHostToDevice);
 
-    cudaMalloc((void**)&valuesstack_dev,valuestacksize*sizeof(float));
-    cudaMemcpy(valuesstack_dev,values,valuestacksize*sizeof(float),cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&valuesstack_dev,valuestacksize*sizeof(double));
+    cudaMemcpy(valuesstack_dev,values,valuestacksize*sizeof(double),cudaMemcpyHostToDevice);
 
     cudaMalloc((void**)&outputstack_dev,6*threads*blocks*sizeof(double));
     cudaMemset(outputstack_dev,0,6*threads*blocks*sizeof(double));

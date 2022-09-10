@@ -21,7 +21,14 @@ int main()
 
     // Two nested recursive for loops within another for loop. Resultant Sum = 205.
     // Equivalant to: int a=5; for(int i=0;i<10;i++){for(int j=0;j<10;j++){a++;} for(int k=0;k<10;k++){a++;}}
-    float values[17] = {0,0,0,1,0,10,0,0,0,1,0,10,0,0,10,0,5};
+
+    long long imaxl = 10;
+    long long i0l = 0;
+
+    double imax = *(double*)(void*)&imaxl;
+    double i0 = *(double*)(void*)&i0l;
+
+    double values[17] = {0,0,0,1,0,imax,i0,0,0,1,0,imax,i0,0,imax,i0,5};
     long long ops[17] = {0,0,0x3CC,0,0,0,0,0,0x3CC,0,0,0,0,0,0,0,0};
     int stack[17] = {100,100,0,1,99,1,1,100,0,1,99,1,1,99,1,1,1};
     double output[10*threads*blocks] =   {0};
@@ -31,7 +38,7 @@ int main()
     int stacksize = 17;
     long long* opstack_dev = NULL;
     int opstacksize = 17;
-    float* valuesstack_dev = NULL;
+    double* valuesstack_dev = NULL;
     int valuestacksize = 17;
     double* outputstack_dev = NULL;
     int outputstacksize = 0;
@@ -42,8 +49,8 @@ int main()
     cudaMalloc((void**)&opstack_dev,opstacksize*sizeof(long long));
     cudaMemcpy(opstack_dev,ops,opstacksize*sizeof(long long),cudaMemcpyHostToDevice);
 
-    cudaMalloc((void**)&valuesstack_dev,valuestacksize*sizeof(float));
-    cudaMemcpy(valuesstack_dev,values,valuestacksize*sizeof(float),cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&valuesstack_dev,valuestacksize*sizeof(double));
+    cudaMemcpy(valuesstack_dev,values,valuestacksize*sizeof(double),cudaMemcpyHostToDevice);
 
     cudaMalloc((void**)&outputstack_dev,6*threads*blocks*sizeof(double));
     cudaMemset(outputstack_dev,0,6*threads*blocks*sizeof(double));

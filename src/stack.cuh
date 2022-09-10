@@ -234,14 +234,14 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         case SREAD:
         {
             push_t(outputstack,o_stackidx, 
-            outputstack[int(pop_t(outputstack,o_stackidx,nt))*nt + variables.TID],nt);
+            outputstack[__double_as_longlong(pop_t(outputstack,o_stackidx,nt))*nt + variables.TID],nt);
             break;
         }
         case SWRITE:
         {
             lv1 = pop_t(outputstack,o_stackidx,nt);
             lv2 = pop_t(outputstack,o_stackidx,nt);
-            outputstack[int(lv2)*nt + variables.TID] = lv1;
+            outputstack[__double_as_longlong(lv2)*nt + variables.TID] = lv1;
             break;
         }
 
@@ -375,28 +375,28 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         // Memory/Pointers
         case MALLOC:
         {
-            F* addr = (F*)malloc(pop_t(outputstack,o_stackidx,nt));
+            F* addr = (F*)malloc(__double_as_longlong(pop_t(outputstack,o_stackidx,nt)));
             push_t(outputstack,o_stackidx, __longlong_as_double((long long)addr) , nt);
             break;
         }
         case FREE:
         {
-            F* addr = (F*)(long long)pop_t(outputstack,o_stackidx,nt);
+            F* addr = (F*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             if(addr!=NULL)
                 free(addr);
             break;
         }
         case MEMCPY:
         {
-            long long size     = (long long)pop_t(outputstack,o_stackidx,nt);
-            F* src      = (F*)(long long)pop_t(outputstack,o_stackidx,nt);
-            F* dest     = (F*)(long long)pop_t(outputstack,o_stackidx,nt);
+            long long size     = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            F* src      = (F*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            F* dest     = (F*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             memcpy(dest,src,size);
             break;
         }
         case MEMSET:
         {
-            long long size     = (long long)pop_t(outputstack,o_stackidx,nt);
+            long long size     = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             F val       = (F)pop_t(outputstack,o_stackidx,nt);
             F* src      = (F*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             memset(src,val,size);
@@ -422,14 +422,14 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         }
         case ADD_P: 
         {   
-            long long li1 = (long long)pop_t(outputstack,o_stackidx,nt);
+            long long li1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             long long addr = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             push_t(outputstack,o_stackidx, __longlong_as_double(addr + li1), nt);
             break;
         }
         case SUB_P: 
         {
-            long long li1 = (long long)pop_t(outputstack,o_stackidx,nt);
+            long long li1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             long long addr = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             long long val = addr - li1; //li2 - li1;
             push_t(outputstack,o_stackidx, __longlong_as_double(val), nt);

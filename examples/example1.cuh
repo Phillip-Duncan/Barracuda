@@ -11,7 +11,7 @@
 template<class F>
 __global__ 
 void example1_kernel(int* stack, int stacksize, long long* opstack, int opstacksize,
-    F* valuestack, int valuestacksize, double* outputstack, int outputstacksize, int Nthreads,
+    double* valuestack, int valuestacksize, double* outputstack, int outputstacksize, int Nthreads,
     Vars<F>* vars) 
 {
     int s_size = stacksize;

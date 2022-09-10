@@ -52,11 +52,11 @@ enum Instructions {
 template<class I, class F, class L>
 __device__
 void eval(I type, I* stack, I &stackidx, I &stacksize, long long* opstack, I &opstackidx,
-F* valuestack, I &valuestackidx, double* outputstack, I &outputstackidx, 
+double* valuestack, I &valuestackidx, double* outputstack, I &outputstackidx, 
 L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
 {
     long long op = pop(opstack,opstackidx);
-    F value = pop(valuestack, valuestackidx);
+    double value = pop(valuestack, valuestackidx);
 
     switch(type) {
         case Instructions::OP: 
@@ -72,15 +72,15 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
         case Instructions::JUMP: 
         {
             value = pop_t(outputstack, outputstackidx, nt);
-            jmp(stack, stackidx, stacksize, opstackidx, valuestackidx, (I)value);
+            jmp(stack, stackidx, stacksize, opstackidx, valuestackidx, (I)__double_as_longlong(value));
             break;
         }
         case Instructions::JUMPIFZERO:
         {
             value = pop_t(outputstack, outputstackidx, nt);
-            I cond = (I)pop_t(outputstack, outputstackidx, nt);
+            I cond = pop_t(outputstack, outputstackidx, nt);
             if (cond==0) {
-                jmp(stack, stackidx, stacksize, opstackidx, valuestackidx, (I)value);
+                jmp(stack, stackidx, stacksize, opstackidx, valuestackidx, (I)__double_as_longlong(value));
             }
             else {
             }
@@ -100,8 +100,8 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
         }
         case Instructions::LOOP_ENTRY: 
         {
-            I imax = (I)pop_t(outputstack, outputstackidx, nt);
-            I i = (I)pop_t(outputstack, outputstackidx, nt);
+            I imax = (I)__double_as_longlong(pop_t(outputstack, outputstackidx, nt));
+            I i = (I)__double_as_longlong(pop_t(outputstack, outputstackidx, nt));
             // Store stack locations of loop entry, i and imax.
             loop_stack[5*loop_idx] = stackidx;
             loop_stack[5*loop_idx+1] = opstackidx;
@@ -153,7 +153,7 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
 template<class I, class F, class L>
 __device__
 inline F evaluateStackExpr(I* stack, I stacksize, long long* opstack, I opstacksize,
-F* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L tid, I nt, Vars<F> &variables ) 
+double* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L tid, I nt, Vars<F> &variables ) 
 {
 
     // Make local versions of idxs for each thread
@@ -197,7 +197,7 @@ F* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L tid, 
 template<class I, class F, class L>
 __device__
 inline F evaluateStackExpr(I* stack, I stacksize, long long* opstack, I opstacksize,
-F* valuestack, I valuestacksize, F* outputstack, I outputstacksize, L tid, I nt ) {
+double* valuestack, I valuestacksize, F* outputstack, I outputstacksize, L tid, I nt ) {
     Vars<F> Variables;
     return evaluateStackExpr(stack, stacksize, opstack, opstacksize,
         valuestack, valuestacksize, outputstack, outputstacksize, tid, nt, Variables);

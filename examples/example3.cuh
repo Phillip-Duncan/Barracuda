@@ -18,10 +18,9 @@ F sinhcos(F x) {
     return sinh(x)*cos(x);
 }
 
-template<class F>
 __global__ 
 void example3_kernel(int* stack, int stacksize, long long* opstack, int opstacksize,
-    F* valuestack, int valuestacksize, double* outputstack, int outputstacksize, int Nthreads) 
+    double* valuestack, int valuestacksize, double* outputstack, int outputstacksize, int Nthreads) 
 {
     int s_size    = stacksize;
     int op_size  = opstacksize;
@@ -30,14 +29,14 @@ void example3_kernel(int* stack, int stacksize, long long* opstack, int opstacks
 
     unsigned int tid = (blockIdx.x * blockDim.y) + (blockIdx.y * gridDim.x * blockDim.y) + threadIdx.y;
 
-    Vars<F> Variables;
+    Vars<float> Variables;
 
-    F (*sinhcos_ptr)(F) = &sinhcos;
+    float (*sinhcos_ptr)(float) = &sinhcos;
     if(tid==0) 
         printf("sinhcos function addr:   %lld\n",sinhcos_ptr);
 
     for(int i=0;i<1;i++) {
-        F test = evaluateStackExpr(stack,s_size,opstack,op_size,
+        float test = evaluateStackExpr(stack,s_size,opstack,op_size,
             valuestack, v_size, outputstack, ou_size, tid, Nthreads, Variables);
     }
 

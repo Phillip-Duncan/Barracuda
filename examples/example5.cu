@@ -19,12 +19,21 @@ int main()
     dim3 Grid(blocks,1,1);
     dim3 Block(1,threads,1);
 
+
+    long long jumppos1l = 7;
+    long long jumppos2l = 3;
+    long long jumppos3l = 10;
+
+    double jp1 = *(double*)(void*)&jumppos1l;
+    double jp2 = *(double*)(void*)&jumppos2l;
+    double jp3 = *(double*)(void*)&jumppos3l;
+
     // Two unconditional jumps and a single conditional jump.
     // First jump brings sp down to conditonal jump, where conditionally jumps up to operation +1 and then
     // jumps to end of program.
     //float values[6] = {10,1,3,0,7,5};
     //long long ops[1] = {0x3CC};
-    float values[11] = {0,0,3,0,0,10,0,1,0,7,5};
+    double values[11] = {0,0,jp2,0,0,jp3,0,1,0,jp1,5};
     long long ops[11] = {0,0,0,0,0,0,0x3CC,0,0,0,0};
     int stack[11] = {20,3,1,1,2,1,0,1,2,1,1};
     double output[6*threads*blocks] =   {0};
@@ -34,7 +43,7 @@ int main()
     int stacksize = 11;
     long long* opstack_dev = NULL;
     int opstacksize = 11;
-    float* valuesstack_dev = NULL;
+    double* valuesstack_dev = NULL;
     int valuestacksize = 11;
     double* outputstack_dev = NULL;
     int outputstacksize = 0;
@@ -45,8 +54,8 @@ int main()
     cudaMalloc((void**)&opstack_dev,opstacksize*sizeof(long long));
     cudaMemcpy(opstack_dev,ops,opstacksize*sizeof(long long),cudaMemcpyHostToDevice);
 
-    cudaMalloc((void**)&valuesstack_dev,valuestacksize*sizeof(float));
-    cudaMemcpy(valuesstack_dev,values,valuestacksize*sizeof(float),cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&valuesstack_dev,valuestacksize*sizeof(double));
+    cudaMemcpy(valuesstack_dev,values,valuestacksize*sizeof(double),cudaMemcpyHostToDevice);
 
     cudaMalloc((void**)&outputstack_dev,6*threads*blocks*sizeof(double));
     cudaMemset(outputstack_dev,0,6*threads*blocks*sizeof(double));
