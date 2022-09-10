@@ -16,3 +16,9 @@ add_executable(example5 example5.cu example5.cuh)
 
 
 add_executable(rule110 rule110.cu rule110.cuh)
+
+
+# Compiler Example
+include_directories(${PROJECT_SOURCE_DIR}/examples/include)
+add_executable(compiler_example compiler_example.cu compiler_example.cuh include/barracuda_compiler.h)
+target_link_libraries(compiler_example ${PROJECT_SOURCE_DIR}/examples/lib/libbarracuda_compiler.so)
