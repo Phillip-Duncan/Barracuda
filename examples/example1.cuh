@@ -12,7 +12,7 @@ template<class F>
 __global__ 
 void example1_kernel(int* stack, int stacksize, long long* opstack, int opstacksize,
     double* valuestack, int valuestacksize, double* outputstack, int outputstacksize, int Nthreads,
-    Vars<F>* vars) 
+    Vars* vars) 
 {
     int s_size = stacksize;
     int op_size = opstacksize;
@@ -22,12 +22,12 @@ void example1_kernel(int* stack, int stacksize, long long* opstack, int opstacks
     unsigned int tid = (blockIdx.x * blockDim.y) + (blockIdx.y * gridDim.x * blockDim.y) + threadIdx.y;
 
     // Set "first" userspace variable (formerly a)
-    Vars<F> Variables = vars[tid];
+    Vars Variables = vars[tid];
 
     Variables.userspace[tid] = 1.569492;
 
     for(int i=0;i<1000;i++) {
-        F test = evaluateStackExpr(stack,s_size,opstack,op_size,
+        evaluateStackExpr<F>(stack,s_size,opstack,op_size,
             valuestack, v_size, outputstack, ou_size, tid, Nthreads, Variables);
     }
 

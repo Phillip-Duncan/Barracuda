@@ -19,10 +19,10 @@ void rule110_kernel(int* stack, int stacksize, long long* opstack, int opstacksi
 
     unsigned int tid = (blockIdx.x * blockDim.y) + (blockIdx.y * gridDim.x * blockDim.y) + threadIdx.y;
 
-    Vars<float> Variables;
+    Vars Variables;
     //Variables.a = 1.569492;
     if(tid==0) {
-        float test = evaluateStackExpr(stack,s_size,opstack,op_size,
+        evaluateStackExpr<float>(stack,s_size,opstack,op_size,
             valuestack, v_size, outputstack, ou_size, tid, Nthreads, Variables);
 
     }

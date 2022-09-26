@@ -99,45 +99,18 @@ enum OPCODES {
 
 };
 
-template<class F>
+//template<class F>
 struct __align__(64) Vars {
     __host__ __device__ Vars(): 
-    /*
-    a(0),b(0),c(0),d(0),e(0),
-    f(0),g(0),h(0),i(0),j(0),
-    k(0),l(0),m(0),n(0),o(0),
-    p(0),q(0),r(0),s(0),t(0),
-    u(0),v(0),w(0),x(0),y(0),
-    z(0),dx(0),dy(0),dz(0),
-    
-    dt(0),a0(0),b0(0),c0(0),
-    d0(0),e0(0),f0(0),g0(0),
-    h0(0),i0(0),j0(0),k0(0),
-    l0(0),m0(0),n0(0),o0(0),
-    p0(0),q0(0),r0(0),s0(0),
-    t0(0),u0(0),v0(0),w0(0),
-    x0(0),y0(0),z0(0),*/
 
+    // Program counter and thread id, internal read-only variables.
     PC(0), TID(0) { }
-
-    // LD and RC capable variables
-    /*
-    F a,b,c,d,e,f,g,h,
-    i,j,k,l,m,n,o,p,q,
-    r,s,t,u,v,w,x,y,z,
-    dx,dy,dz;
-
-    // LD but NON-RC variables
-    F dt,a0,b0,c0,d0,e0,
-    f0,g0,h0,i0,j0,k0,l0,
-    m0,n0,o0,p0,q0,r0,s0,
-    t0,u0,v0,w0,x0,y0,z0; */
 
     // Internal use only, but can be loaded
     unsigned int PC, TID;
 
     // Allocated User-space
-    F* userspace;
+    double* userspace;
 };
 
 template<class U, class I>
@@ -220,7 +193,7 @@ inline void jmp(T* stack, I &stackidx, I stacksize, I &opstackidx, I &valuestack
  */
 template<class F, class I>
 __device__
-inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I mode, Vars<F> &variables) {
+inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I mode, Vars &variables) {
     F value, v1, v2;
     double lvalue, lv1, lv2;
     switch(op) {
@@ -1173,8 +1146,8 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
 template<class F, class I>
 __device__
 inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I mode) {
-    Vars<F> variables;
-    operation(op, outputstack, o_stackidx, nt, mode, variables);
+    Vars variables;
+    operation<F>(op, outputstack, o_stackidx, nt, mode, variables);
 }
 
 
@@ -1182,7 +1155,7 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
 #if MSTACK_UNSAFE==1
 template<class F, class I>
 __device__
-inline void operation(I type, long long op, double* outputstack, I &o_stackidx, I nt, I mode, Vars<F> &variables) {
+inline void operation(I type, long long op, double* outputstack, I &o_stackidx, I nt, I mode, Vars &variables) {
     if (op==OPNULL)
         return;
     I nargs = abs(type);
@@ -1295,8 +1268,8 @@ inline void operation(I type, long long op, double* outputstack, I &o_stackidx, 
 template<class F, class I>
 __device__
 inline void operation(I type, long long op, double* outputstack, I &o_stackidx, I nt, I mode) {
-    Vars<F> variables;
-    operation(type, op, outputstack, o_stackidx, nt, mode, variables);
+    Vars variables;
+    operation<F>(type, op, outputstack, o_stackidx, nt, mode, variables);
 }
 #endif
 #endif

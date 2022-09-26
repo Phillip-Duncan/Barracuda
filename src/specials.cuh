@@ -53,7 +53,7 @@ template<class I, class F>
 __device__
 inline F romberg(I max_steps, F acc, I functype, long long function, F a, F b,
     double* outputstack, I &o_stackidx, I nt) {
-    Vars<F> dummy_variables;
+    Vars dummy_variables;
     F R1[MSTACK_SPECIALS_MMAXSTEP], R2[MSTACK_SPECIALS_MMAXSTEP]; // buffers
     F *Rp = &R1[0], *Rc = &R2[0]; // Rp is previous row, Rc is current row
     F h = (b-a); //step size

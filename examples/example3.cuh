@@ -29,14 +29,14 @@ void example3_kernel(int* stack, int stacksize, long long* opstack, int opstacks
 
     unsigned int tid = (blockIdx.x * blockDim.y) + (blockIdx.y * gridDim.x * blockDim.y) + threadIdx.y;
 
-    Vars<float> Variables;
+    Vars Variables;
 
     float (*sinhcos_ptr)(float) = &sinhcos;
     if(tid==0) 
         printf("sinhcos function addr:   %lld\n",sinhcos_ptr);
 
     for(int i=0;i<1;i++) {
-        float test = evaluateStackExpr(stack,s_size,opstack,op_size,
+        evaluateStackExpr<float>(stack,s_size,opstack,op_size,
             valuestack, v_size, outputstack, ou_size, tid, Nthreads, Variables);
     }
 

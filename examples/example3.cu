@@ -46,8 +46,6 @@ int main()
     cudaMalloc((void**)&outputstack_dev,10*threads*blocks*sizeof(double));
     cudaMemset(outputstack_dev,0,10*threads*blocks*sizeof(double));
 
-    float dummy = 0.0;
-
     // Launch example kernel
     typedef std::chrono::high_resolution_clock Clock;
     auto t1 = Clock::now();

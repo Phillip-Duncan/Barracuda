@@ -49,13 +49,13 @@ int main()
     // Allocate some user-space
     int user_space_size = 64*threads*blocks;
 
-    float* user_space_dev = NULL; 
-    cudaMalloc((void**)&user_space_dev,user_space_size*sizeof(float));
-    cudaMemset((void**)&user_space_dev,0,user_space_size*sizeof(float));
+    double* user_space_dev = NULL; 
+    cudaMalloc((void**)&user_space_dev,user_space_size*sizeof(double));
+    cudaMemset((void**)&user_space_dev,0,user_space_size*sizeof(double));
 
-    Vars<float> vars;
-    Vars<float>* variables_host = (Vars<float>*)malloc(threads* blocks * sizeof(vars));
-    Vars<float>* variables_dev = NULL;
+    Vars vars;
+    Vars* variables_host = (Vars*)malloc(threads* blocks * sizeof(vars));
+    Vars* variables_dev = NULL;
     
 
     for (int i=0; i<threads*blocks; i++) {
@@ -72,7 +72,7 @@ int main()
     auto t1 = Clock::now();
 
     for (int j=0;j<50;j++) {
-        example1_kernel<<<Grid,Block>>>(stack_dev,stacksize,opstack_dev,opstacksize,
+        example1_kernel<float><<<Grid,Block>>>(stack_dev,stacksize,opstack_dev,opstacksize,
         valuesstack_dev,valuestacksize,outputstack_dev,outputstacksize,threads*blocks, variables_dev);
         cudaDeviceSynchronize();
     }

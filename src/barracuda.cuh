@@ -49,11 +49,11 @@ enum Instructions {
 
 };
 
-template<class I, class F, class L>
+template<class F, class I, class L>
 __device__
 void eval(I type, I* stack, I &stackidx, I &stacksize, long long* opstack, I &opstackidx,
 double* valuestack, I &valuestackidx, double* outputstack, I &outputstackidx, 
-L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
+L tid, I nt, Vars &variables, I* loop_stack, I &loop_idx )
 {
     long long op = pop(opstack,opstackidx);
     double value = pop(valuestack, valuestackidx);
@@ -89,12 +89,12 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
         case Instructions::SI_VALUE_OP:
         {
             push_t(outputstack, outputstackidx, value, nt);
-            operation(op, outputstack, outputstackidx, nt, 0, variables);
+            operation<F>(op, outputstack, outputstackidx, nt, 0, variables);
             break;
         }
         case Instructions::SI_OP_VALUE: 
         {
-            operation(op, outputstack, outputstackidx, nt, 0, variables);
+            operation<F>(op, outputstack, outputstackidx, nt, 0, variables);
             push_t(outputstack, outputstackidx, value, nt);
             break;
         }
@@ -150,10 +150,10 @@ L tid, I nt, Vars<F> &variables, I* loop_stack, I &loop_idx )
     }
 }
 
-template<class I, class F, class L>
+template<class F, class I, class L>
 __device__
-inline F evaluateStackExpr(I* stack, I stacksize, long long* opstack, I opstacksize,
-double* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L tid, I nt, Vars<F> &variables ) 
+inline void evaluateStackExpr(I* stack, I stacksize, long long* opstack, I opstacksize,
+double* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L tid, I nt, Vars &variables ) 
 {
 
     // Make local versions of idxs for each thread
@@ -181,24 +181,22 @@ double* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L 
         // "Pop type from stack"
         type = pop(stack,l_stackidx);
 
-        eval(type, stack, l_stackidx, l_stacksize, opstack, l_opstackidx, valuestack, 
+        eval<F>(type, stack, l_stackidx, l_stacksize, opstack, l_opstackidx, valuestack, 
                 l_valuestackidx, outputstack, l_outputstackidx,
                 tid, nt, variables, loop_stack, loop_idx);
 
         // Advance program counter
         variables.PC = l_stacksize - l_stackidx;
     }
-    // Return the final result from the outputstack
-    return outputstack[tid];
 }
 
 
 // Function overload for when expression contains no Variables and struct not provided.
 template<class I, class F, class L>
 __device__
-inline F evaluateStackExpr(I* stack, I stacksize, long long* opstack, I opstacksize,
+inline void evaluateStackExpr(I* stack, I stacksize, long long* opstack, I opstacksize,
 double* valuestack, I valuestacksize, F* outputstack, I outputstacksize, L tid, I nt ) {
-    Vars<F> Variables;
+    Vars Variables;
     return evaluateStackExpr(stack, stacksize, opstack, opstacksize,
         valuestack, valuestacksize, outputstack, outputstacksize, tid, nt, Variables);
 }
