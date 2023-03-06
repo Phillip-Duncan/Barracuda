@@ -40,7 +40,9 @@ enum OPCODES {
     // Simplified Compare opcodes
     EQ, GT, GTEQ, LT, LTEQ, 
 
-    // Extra Memory instruction codes (Enum follows from Ternary)
+    // Extra Memory instruction codes
+    PTR_DEREF,
+
     READ_U8, READ_U16, READ_U32, READ_U64,
     READ_I8, READ_I16, READ_I32, READ_I64,
     READ_F8, READ_F16, READ_F32, READ_F64,
@@ -461,6 +463,17 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
             break;
         }
 
+        // Extra memory operators
+        case PTR_DEREF:
+        {
+            // Pointer dereferencing, if pointer points to a pointer need to use this instead of READ
+            // to avoid address truncation.
+            void** addr = (void**)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            if(addr!=NULL) {
+                push_t(outputstack,o_stackidx,__longlong_as_double((long long)(*addr)), nt);
+            }
+            break;
+        }
 
 
         // Mathematical Operators
