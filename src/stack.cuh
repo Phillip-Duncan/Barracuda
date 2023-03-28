@@ -88,7 +88,7 @@ enum OPCODES {
 
     // Load special variables
     LDPC = 0x12FC, LDTID,
-    LDNXPTR,
+    LDNXPTR, LDSTK_PTR, RCSTK_PTR,
 
     // Lower (0) and upper (1) ranges for Load and Store into Nth variate userspace.
     LDNX0 = 0xF4240,
@@ -1130,6 +1130,16 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         {
             push_t(outputstack, o_stackidx, __longlong_as_double(
                 (long long)&variables.userspace[variables.TID + __double_as_longlong(pop_t(outputstack, o_stackidx, nt))*nt]), nt);
+            break;
+        }
+        case LDSTK_PTR:
+        {
+            push_t(outputstack, o_stackidx, __longlong_as_double((long long)o_stackidx), nt);
+            break;
+        }
+        case RCSTK_PTR:
+        {
+            o_stackidx = (I)__double_as_longlong(pop_t(outputstack, o_stackidx, nt));
             break;
         }
 
