@@ -30,7 +30,7 @@ enum OPCODES {
     DIV, AND, NAND, OR, NOR,
     XOR, NOT, INC, DEC, SWAP,
     DUP, OVER, DROP, LSHIFT,
-    RSHIFT,
+    RSHIFT, NEGATE,
 
     // Basic-extended opcodes
     MALLOC, FREE, MEMCPY, MEMSET,
@@ -38,7 +38,7 @@ enum OPCODES {
     TERNARY,
 
     // Simplified Compare opcodes
-    EQ, GT, GTEQ, LT, LTEQ, 
+    EQ, GT, GTEQ, LT, LTEQ, NEQ,
 
     // Extra Memory instruction codes
     PTR_DEREF,
@@ -198,6 +198,7 @@ __device__
 inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I mode, Vars &variables) {
     F value, v1, v2;
     double lvalue, lv1, lv2;
+    long long livalue, liv1, liv2;
     switch(op) {
         // Null operation
         case OPNULL:
@@ -254,37 +255,37 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         }
         case AND: 
         {
-            push_t(outputstack,o_stackidx, (double)((unsigned long)pop_t(outputstack,o_stackidx,nt) & 
-            (unsigned long)pop_t(outputstack,o_stackidx,nt)), nt);
+            push_t(outputstack,o_stackidx, __longlong_as_double((__double_as_longlong(pop_t(outputstack,o_stackidx,nt)) & 
+            (__double_as_longlong(pop_t(outputstack,o_stackidx,nt))))), nt);
             break;
         }
         case NAND: 
         {
-            push_t(outputstack,o_stackidx, (double)!((unsigned long)pop_t(outputstack,o_stackidx,nt) & 
-            (unsigned long)pop_t(outputstack,o_stackidx,nt)), nt);
+            push_t(outputstack,o_stackidx, __longlong_as_double(!(__double_as_longlong(pop_t(outputstack,o_stackidx,nt)) & 
+            (__double_as_longlong(pop_t(outputstack,o_stackidx,nt))))), nt);
             break;
         }
         case OR: 
         {
-            push_t(outputstack,o_stackidx, (double)((unsigned long)pop_t(outputstack,o_stackidx,nt) | 
-            (unsigned long)pop_t(outputstack,o_stackidx,nt)), nt);
+            push_t(outputstack,o_stackidx, __longlong_as_double((__double_as_longlong(pop_t(outputstack,o_stackidx,nt)) | 
+            (__double_as_longlong(pop_t(outputstack,o_stackidx,nt))))), nt);
             break;
         }
         case NOR: 
         {
-            push_t(outputstack,o_stackidx, (double)!((unsigned long)pop_t(outputstack,o_stackidx,nt) | 
-            (unsigned long)pop_t(outputstack,o_stackidx,nt)), nt);
+            push_t(outputstack,o_stackidx, __longlong_as_double(!(__double_as_longlong(pop_t(outputstack,o_stackidx,nt)) | 
+            (__double_as_longlong(pop_t(outputstack,o_stackidx,nt))))), nt);
             break;
         }
         case XOR: 
         {
-            push_t(outputstack,o_stackidx, (double)((unsigned long)pop_t(outputstack,o_stackidx,nt) ^ 
-            (unsigned long)pop_t(outputstack,o_stackidx,nt)), nt);
+            push_t(outputstack,o_stackidx, __longlong_as_double((__double_as_longlong(pop_t(outputstack,o_stackidx,nt)) ^ 
+            (__double_as_longlong(pop_t(outputstack,o_stackidx,nt))))), nt);
             break;
         }
         case NOT: 
         {
-            push_t(outputstack,o_stackidx, (double)!((unsigned long)pop_t(outputstack,o_stackidx,nt)), nt);
+            push_t(outputstack,o_stackidx, __longlong_as_double(!(__double_as_longlong(pop_t(outputstack,o_stackidx,nt)))), nt);
             break;
         }
         case INC:
@@ -330,7 +331,7 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         }
         case LSHIFT:
         {
-            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             lv2 = pop_t(outputstack,o_stackidx,nt);
             lvalue = (double)((unsigned long)lv2 << (unsigned long)lv1);
             push_t(outputstack,o_stackidx, lvalue , nt);
@@ -342,6 +343,13 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
             lv2 = pop_t(outputstack,o_stackidx,nt);
             lvalue = (double)((unsigned long)lv2 >> (unsigned long)lv1);
             push_t(outputstack,o_stackidx, lvalue , nt);
+            break;
+        }
+        case NEGATE:
+        {
+            v1 = (F)pop_t(outputstack,o_stackidx,nt);
+            value = -v1;
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
 
@@ -372,9 +380,9 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         case MEMSET:
         {
             long long size     = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
-            F val       = (F)pop_t(outputstack,o_stackidx,nt);
+            v1       = (F)pop_t(outputstack,o_stackidx,nt);
             F* src      = (F*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
-            memset(src,val,size);
+            memset(src,v1,size);
             push_t(outputstack,o_stackidx,__longlong_as_double((long long)src), nt);
             break;
         }
@@ -397,25 +405,25 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         }
         case ADD_P: 
         {   
-            long long li1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
-            long long addr = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
-            push_t(outputstack,o_stackidx, __longlong_as_double(addr + li1), nt);
+            liv1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            liv2 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, __longlong_as_double(liv2 + liv1), nt);
             break;
         }
         case SUB_P: 
         {
-            long long li1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
-            long long addr = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
-            long long val = addr - li1; //li2 - li1;
-            push_t(outputstack,o_stackidx, __longlong_as_double(val), nt);
+            liv1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            liv2 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            livalue = liv2 - liv1;
+            push_t(outputstack,o_stackidx, __longlong_as_double(livalue), nt);
             break;
         }
         case TERNARY: 
         {
             lv1 = pop_t(outputstack,o_stackidx,nt);
             lv2 = pop_t(outputstack,o_stackidx,nt);
-            double lv3 = pop_t(outputstack,o_stackidx,nt);
-            lvalue = (lv3>0) ? lv2:lv1;
+            lvalue = pop_t(outputstack,o_stackidx,nt);
+            lvalue = (lvalue>0) ? lv2:lv1;
             push_t(outputstack,o_stackidx, lvalue , nt);
             break;
         }
@@ -460,6 +468,14 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
             lv2 = pop_t(outputstack,o_stackidx,nt);
             lvalue = lv1 >= lv2;
             push_t(outputstack,o_stackidx,lvalue,nt);
+            break;
+        }
+        case NEQ:
+        {
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv2 = pop_t(outputstack,o_stackidx,nt);
+            lvalue = lv1 != lv2;
+            push_t(outputstack,o_stackidx, value, nt);
             break;
         }
 
@@ -649,8 +665,8 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         {
             v1 = (F)pop_t(outputstack,o_stackidx,nt);
             v2 = (F)pop_t(outputstack,o_stackidx,nt);
-            F v3 = (F)pop_t(outputstack,o_stackidx,nt);
-            value = fma(v3,v2,v1);
+            value = (F)pop_t(outputstack,o_stackidx,nt);
+            value = fma(value,v2,v1);
             push_t(outputstack,o_stackidx, value, nt);
             break;
         }
@@ -859,8 +875,8 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         {
             v1 = (F)pop_t(outputstack,o_stackidx,nt);
             v2 = (F)pop_t(outputstack,o_stackidx,nt);
-            F v3 = (F)pop_t(outputstack,o_stackidx,nt);
-            value = norm3d(v3,v2,v1);
+            value = (F)pop_t(outputstack,o_stackidx,nt);
+            value = norm3d(value,v2,v1);
             push_t(outputstack,o_stackidx, value, nt);
             break;
         }
@@ -869,8 +885,8 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
             v1 = (F)pop_t(outputstack,o_stackidx,nt);
             v2 = (F)pop_t(outputstack,o_stackidx,nt);
             F v3 = (F)pop_t(outputstack,o_stackidx,nt);
-            F v4 = (F)pop_t(outputstack,o_stackidx,nt);
-            value = norm4d(v4,v3,v2,v1);
+            value = (F)pop_t(outputstack,o_stackidx,nt);
+            value = norm4d(value,v3,v2,v1);
             push_t(outputstack,o_stackidx, value, nt);
             break;
         }
@@ -910,7 +926,7 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         }
         case REMQUO:
         {
-            I* i_ptr = (I*)((long long)pop_t(outputstack,o_stackidx,nt));
+            I* i_ptr = (I*)(__double_as_longlong(pop_t(outputstack,o_stackidx,nt)));
             v1 = (F)pop_t(outputstack,o_stackidx,nt);
             v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = remquo(v2,v1,i_ptr);
@@ -933,7 +949,7 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         }
         case RNORM:
         {
-            double* d_ptr = (double*)((long long)pop_t(outputstack,o_stackidx,nt));
+            double* d_ptr = (double*)(__double_as_longlong(pop_t(outputstack,o_stackidx,nt)));
             v2 = (I)pop_t(outputstack,o_stackidx,nt);
             value = rnorm((I)v2,d_ptr);
             push_t(outputstack,o_stackidx, value, nt);
@@ -943,8 +959,8 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         {
             v1 = (F)pop_t(outputstack,o_stackidx,nt);
             v2 = (F)pop_t(outputstack,o_stackidx,nt);
-            F v3 = (F)pop_t(outputstack,o_stackidx,nt);
-            value = rnorm3d(v3,v2,v1);
+            value = (F)pop_t(outputstack,o_stackidx,nt);
+            value = rnorm3d(value,v2,v1);
             push_t(outputstack,o_stackidx, value, nt);
             break;
         }
@@ -953,8 +969,8 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
             v1 = (F)pop_t(outputstack,o_stackidx,nt);
             v2 = (F)pop_t(outputstack,o_stackidx,nt);
             F v3 = (F)pop_t(outputstack,o_stackidx,nt);
-            F v4 = (F)pop_t(outputstack,o_stackidx,nt);
-            value = rnorm4d(v4,v3,v2,v1);
+            value = (F)pop_t(outputstack,o_stackidx,nt);
+            value = rnorm4d(value,v3,v2,v1);
             push_t(outputstack,o_stackidx, value, nt);
             break;
         }
@@ -972,7 +988,7 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         }
         case SCALBLN:
         {
-            long long liv1 = (long long)pop_t(outputstack,o_stackidx,nt);
+            liv1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             v2 = (F)pop_t(outputstack,o_stackidx,nt);
             value = scalbln(v2,liv1);
             push_t(outputstack,o_stackidx, value, nt);
