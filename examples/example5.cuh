@@ -9,12 +9,10 @@
 #include <chrono>
 
 __global__ 
-void example5_kernel(int* stack, int stacksize, long long* opstack, int opstacksize,
-    double* valuestack, int valuestacksize, double* outputstack, int outputstacksize, int Nthreads) 
+void example5_kernel(int* stack, int stacksize, long long* opstack,
+    double* valuestack, double* outputstack, int outputstacksize, int Nthreads) 
 {
     int s_size = stacksize;
-    int op_size = opstacksize;
-    int v_size = valuestacksize;
     int ou_size = outputstacksize;
 
     unsigned int tid = (blockIdx.x * blockDim.y) + (blockIdx.y * gridDim.x * blockDim.y) + threadIdx.y;
@@ -23,8 +21,8 @@ void example5_kernel(int* stack, int stacksize, long long* opstack, int opstacks
     //Variables.a = 1.569492;
 
     for(int i=0;i<1;i++) {
-        evaluateStackExpr<float>(stack,s_size,opstack,op_size,
-            valuestack, v_size, outputstack, ou_size, tid, Nthreads, Variables);
+        evaluateStackExpr<float>(stack,s_size,opstack, valuestack, 
+            outputstack, ou_size, tid, Nthreads, Variables);
     }
 
 }

@@ -12,10 +12,12 @@
  #ifndef _STACK_CUH
  #define _STACK_CUH
 
-//forward declaration
-template<class I, class F>
-inline __device__ F integrate(I intmethod, I maxstep, F accuracy, I functype, long long function, F llim, F ulim,
-            double* outputstack, I &o_stackidx, I nt);
+ #if MSTACK_SPECIALS==1
+    //forward declaration, if enabled...
+    template<class I, class F>
+    inline __device__ F integrate(I intmethod, I maxstep, F accuracy, I functype, long long function, F llim, F ulim,
+                double* outputstack, I &o_stackidx, I nt);
+#endif
 
 enum OPCODES {
 
@@ -24,6 +26,7 @@ enum OPCODES {
 
     // Read and write from specific location on stack.
     SREAD = 0x1, SWRITE,
+    SADD_P, SSUB_P,
 
     // Basic opcodes
     ADD = 0x3CC, SUB, MUL,
@@ -89,6 +92,7 @@ enum OPCODES {
     // Load special variables
     LDPC = 0x12FC, LDTID,
     LDNXPTR, LDSTK_PTR, RCSTK_PTR,
+    LDNT,
 
     // Lower (0) and upper (1) ranges for Load and Store into Nth variate userspace.
     LDNX0 = 0xF4240,
@@ -162,17 +166,22 @@ inline void push_t(T* stack, I &stackidx, U value, I nt) {
     stackidx = stackidx+nt;
 }
 
+// Read a value from a stack at same head position as stack index
+template<class U, class I>
+__device__
+inline U read(U* stack, I stackidx) {
+    return stack[stackidx];
+}
+
 // Jump/GOTO position on instruction stack
 template<class T, class I>
 __device__
-inline void jmp(T* stack, I &stackidx, I stacksize, I &opstackidx, I &valuestackidx, I pos) {
+inline void jmp(T* stack, I &stackidx, I stacksize, I pos) {
     // Make sure goto is bounded between 0 and alloc(stack), otherwise just go to end (or beginning if <0)
     pos = pos >= 0 ? pos : 0;
     pos = pos <= stacksize ? pos : stacksize;
     // Adjust stackidx to "goto" pos.
     stackidx  = (I)(stacksize - pos);
-    opstackidx = stackidx;
-    valuestackidx = stackidx;
     // Adjust program counter to pos.
     //PC = pos;
     return;
@@ -206,7 +215,7 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
             break;
         }
         
-        // Stack read and write instructions
+        // Stack read, and write, pointer add, pointer sub instructions
         case SREAD:
         {
             push_t(outputstack,o_stackidx, 
@@ -218,6 +227,20 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
             lv1 = pop_t(outputstack,o_stackidx,nt);
             lv2 = pop_t(outputstack,o_stackidx,nt);
             outputstack[__double_as_longlong(lv2)*nt + variables.TID] = lv1;
+            break;
+        }
+        case SADD_P:
+        {
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv2 = pop_t(outputstack,o_stackidx,nt);
+            push_t(outputstack, o_stackidx, lv2 + lv1*nt, nt);
+            break;
+        }
+        case SSUB_P:
+        {
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv2 = pop_t(outputstack,o_stackidx,nt);
+            push_t(outputstack, o_stackidx, lv2 - lv1*nt, nt);
             break;
         }
 
@@ -1134,12 +1157,12 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
 
         case LDPC:
         {
-            push_t(outputstack, o_stackidx, variables.PC, nt);
+            push_t(outputstack, o_stackidx, __longlong_as_double((long long)variables.PC), nt);
             break;
         }
         case LDTID:
         {
-            push_t(outputstack, o_stackidx, variables.TID, nt);
+            push_t(outputstack, o_stackidx, __longlong_as_double((long long)variables.TID), nt);
             break;
         }
         case LDNXPTR:
@@ -1156,6 +1179,11 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         case RCSTK_PTR:
         {
             o_stackidx = (I)__double_as_longlong(pop_t(outputstack, o_stackidx, nt));
+            break;
+        }
+        case LDNT:
+        {
+            push_t(outputstack, o_stackidx, __longlong_as_double((long long)nt), nt);
             break;
         }
 

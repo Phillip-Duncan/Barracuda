@@ -9,12 +9,10 @@
 #include <chrono>
 
 __global__ 
-void rule110_kernel(int* stack, int stacksize, long long* opstack, int opstacksize,
-    double* valuestack, int valuestacksize, double* outputstack, int outputstacksize, int Nthreads) 
+void rule110_kernel(int* stack, int stacksize, long long* opstack,
+    double* valuestack, double* outputstack, int outputstacksize, int Nthreads) 
 {
     int s_size = stacksize;
-    int op_size = opstacksize;
-    int v_size = valuestacksize;
     int ou_size = outputstacksize;
 
     unsigned int tid = (blockIdx.x * blockDim.y) + (blockIdx.y * gridDim.x * blockDim.y) + threadIdx.y;
@@ -22,8 +20,8 @@ void rule110_kernel(int* stack, int stacksize, long long* opstack, int opstacksi
     Vars Variables;
     //Variables.a = 1.569492;
     if(tid==0) {
-        evaluateStackExpr<float>(stack,s_size,opstack,op_size,
-            valuestack, v_size, outputstack, ou_size, tid, Nthreads, Variables);
+        evaluateStackExpr<float>(stack,s_size,opstack, valuestack, 
+            outputstack, ou_size, tid, Nthreads, Variables);
 
     }
 

@@ -51,12 +51,12 @@ enum Instructions {
 
 template<class F, class I, class L>
 __device__
-void eval(I type, I* stack, I &stackidx, I &stacksize, long long* opstack, I &opstackidx,
-double* valuestack, I &valuestackidx, double* outputstack, I &outputstackidx, 
+void eval(I type, I* stack, I &stackidx, I &stacksize, long long* opstack,
+double* valuestack, double* outputstack, I &outputstackidx, 
 L tid, I nt, Vars &variables, I* loop_stack, I &loop_idx )
 {
-    long long op = pop(opstack,opstackidx);
-    double value = pop(valuestack, valuestackidx);
+    long long op = read(opstack, stackidx);
+    double value = read(valuestack, stackidx);
 
     switch(type) {
         case Instructions::OP: 
@@ -72,7 +72,7 @@ L tid, I nt, Vars &variables, I* loop_stack, I &loop_idx )
         case Instructions::JUMP: 
         {
             value = pop_t(outputstack, outputstackidx, nt);
-            jmp(stack, stackidx, stacksize, opstackidx, valuestackidx, (I)__double_as_longlong(value));
+            jmp(stack, stackidx, stacksize, (I)__double_as_longlong(value));
             break;
         }
         case Instructions::JUMPIFZERO:
@@ -80,7 +80,7 @@ L tid, I nt, Vars &variables, I* loop_stack, I &loop_idx )
             value = pop_t(outputstack, outputstackidx, nt);
             I cond = pop_t(outputstack, outputstackidx, nt);
             if (cond==0) {
-                jmp(stack, stackidx, stacksize, opstackidx, valuestackidx, (I)__double_as_longlong(value));
+                jmp(stack, stackidx, stacksize, (I)__double_as_longlong(value));
             }
             else {
             }
@@ -103,21 +103,19 @@ L tid, I nt, Vars &variables, I* loop_stack, I &loop_idx )
             I imax = (I)__double_as_longlong(pop_t(outputstack, outputstackidx, nt));
             I i = (I)__double_as_longlong(pop_t(outputstack, outputstackidx, nt));
             // Store stack locations of loop entry, i and imax.
-            loop_stack[5*loop_idx] = stackidx;
-            loop_stack[5*loop_idx+1] = opstackidx;
-            loop_stack[5*loop_idx+2] = valuestackidx;
-            loop_stack[5*loop_idx+3] = i;
-            loop_stack[5*loop_idx+4] = imax;
+            loop_stack[3*loop_idx] = stackidx;
+            loop_stack[3*loop_idx+1] = i;
+            loop_stack[3*loop_idx+2] = imax;
             loop_idx = loop_idx + 1;
             break;
         }
         case Instructions::LOOP_EXIT:
         {
             // Compare values of i,imax to see whether loop has ended or continues
-            I i = loop_stack[5*(loop_idx-1)+3];
-            I imax = loop_stack[5*(loop_idx-1)+4];
+            I i = loop_stack[3*(loop_idx-1)+1];
+            I imax = loop_stack[3*(loop_idx-1)+2];
             i = i + 1;
-            loop_stack[5*(loop_idx-1)+3] = i;
+            loop_stack[3*(loop_idx-1)+1] = i;
             // If loop has reached end decrement loop_idx and return
             if (i>=imax){
                 loop_idx = loop_idx - 1;
@@ -125,12 +123,10 @@ L tid, I nt, Vars &variables, I* loop_stack, I &loop_idx )
             // Otherwise goto start of loop.
             else {
                 // Reset program counter
-                variables.PC = stacksize - loop_stack[5*(loop_idx-1)];
+                variables.PC = stacksize - loop_stack[3*(loop_idx-1)];
 
                 // Swap indicies/sizes
-                stackidx = loop_stack[5*(loop_idx-1)];
-                opstackidx = loop_stack[5*(loop_idx-1) + 1];
-                valuestackidx = loop_stack[5*(loop_idx-1) + 2];
+                stackidx = loop_stack[3*(loop_idx-1)];
             }
             break;
         }
@@ -139,7 +135,6 @@ L tid, I nt, Vars &variables, I* loop_stack, I &loop_idx )
             // function pointer operation
             #if MSTACK_UNSAFE==1
                 if (type<0) {
-                    op = pop(opstack, opstackidx);
                     operation<F>(type, op, outputstack, outputstackidx, nt, 0, variables);
                     break;
                 }
@@ -152,8 +147,8 @@ L tid, I nt, Vars &variables, I* loop_stack, I &loop_idx )
 
 template<class F, class I, class L>
 __device__
-inline void evaluateStackExpr(I* stack, I stacksize, long long* opstack, I opstacksize,
-double* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L tid, I nt, Vars &variables ) 
+inline void evaluateStackExpr(I* stack, I stacksize, long long* opstack, double* valuestack,
+    double* outputstack, I outputstacksize, L tid, I nt, Vars &variables) 
 {
 
     // Make local versions of idxs for each thread
@@ -161,8 +156,6 @@ double* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L 
 
     I l_stacksize         = stacksize;
     I l_stackidx          = stacksize;
-    I l_opstackidx        = opstacksize;
-    I l_valuestackidx     = valuestacksize;
 
     I type;
 
@@ -170,7 +163,7 @@ double* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L 
 
     // array + idx for nested loop "slots"
     // Change this in future to be implementation-allocated.
-    I loop_stack[5*MSTACK_LOOP_NEST_LIMIT];
+    I loop_stack[3*MSTACK_LOOP_NEST_LIMIT];
     I loop_idx = 0;
 
     // Set program counter back to 0
@@ -181,8 +174,8 @@ double* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L 
         // "Pop type from stack"
         type = pop(stack,l_stackidx);
 
-        eval<F>(type, stack, l_stackidx, l_stacksize, opstack, l_opstackidx, valuestack, 
-                l_valuestackidx, outputstack, l_outputstackidx,
+        eval<F>(type, stack, l_stackidx, l_stacksize, opstack, valuestack, 
+                outputstack, l_outputstackidx,
                 tid, nt, variables, loop_stack, loop_idx);
 
         // Advance program counter
@@ -194,11 +187,11 @@ double* valuestack, I valuestacksize, double* outputstack, I outputstacksize, L 
 // Function overload for when expression contains no Variables and struct not provided.
 template<class I, class F, class L>
 __device__
-inline void evaluateStackExpr(I* stack, I stacksize, long long* opstack, I opstacksize,
-double* valuestack, I valuestacksize, F* outputstack, I outputstacksize, L tid, I nt ) {
+inline void evaluateStackExpr(I* stack, I stacksize, long long* opstack, double* valuestack,
+    F* outputstack, I outputstacksize, L tid, I nt ) {
     Vars Variables;
-    return evaluateStackExpr(stack, stacksize, opstack, opstacksize,
-        valuestack, valuestacksize, outputstack, outputstacksize, tid, nt, Variables);
+    return evaluateStackExpr(stack, stacksize, opstack,
+        valuestack, outputstack, outputstacksize, tid, nt, Variables);
 }
 
 

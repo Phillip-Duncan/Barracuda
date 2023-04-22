@@ -92,8 +92,8 @@ void solver(int* instructions, long long* ops, double* values,
     // Launch example kernel
     typedef std::chrono::high_resolution_clock Clock;
     auto t1 = Clock::now();
-    generic_kernel<f3264><<<Grid,Block>>>(stack_dev, stack_size, opstack_dev, stack_size,
-    valuesstack_dev, stack_size, outputstack_dev, output_stack_size, variables_dev, threads*blocks);
+    generic_kernel<f3264><<<Grid,Block>>>(stack_dev, stack_size, opstack_dev,
+    valuesstack_dev, outputstack_dev, output_stack_size, variables_dev, threads*blocks);
     cudaDeviceSynchronize();
     auto t2 = Clock::now();
 
