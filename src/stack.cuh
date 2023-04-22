@@ -231,16 +231,16 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         }
         case SADD_P:
         {
-            lv1 = pop_t(outputstack,o_stackidx,nt);
-            lv2 = pop_t(outputstack,o_stackidx,nt);
-            push_t(outputstack, o_stackidx, lv2 + lv1*nt, nt);
+            liv1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            liv2 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack, o_stackidx, __longlong_as_double(lv2 + lv1*nt), nt);
             break;
         }
         case SSUB_P:
         {
-            lv1 = pop_t(outputstack,o_stackidx,nt);
-            lv2 = pop_t(outputstack,o_stackidx,nt);
-            push_t(outputstack, o_stackidx, lv2 - lv1*nt, nt);
+            liv1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            liv2 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack, o_stackidx, __longlong_as_double(lv2 - lv1*nt), nt);
             break;
         }
 
