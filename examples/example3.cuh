@@ -27,7 +27,7 @@ void example3_kernel(int* stack, int stacksize, long long* opstack,
 
     unsigned int tid = (blockIdx.x * blockDim.y) + (blockIdx.y * gridDim.x * blockDim.y) + threadIdx.y;
 
-    Vars Variables;
+    double* userspace = NULL;
 
     float (*sinhcos_ptr)(float) = &sinhcos;
     if(tid==0) 
@@ -35,7 +35,7 @@ void example3_kernel(int* stack, int stacksize, long long* opstack,
 
     for(int i=0;i<1;i++) {
         evaluateStackExpr<float>(stack,s_size,opstack, valuestack, 
-            outputstack, ou_size, tid, Nthreads, Variables);
+            outputstack, ou_size, tid, Nthreads, userspace);
     }
 
 }

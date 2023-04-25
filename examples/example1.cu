@@ -51,19 +51,6 @@ int main()
     cudaMalloc((void**)&user_space_dev,user_space_size*sizeof(double));
     cudaMemset((void**)&user_space_dev,0,user_space_size*sizeof(double));
 
-    Vars vars;
-    Vars* variables_host = (Vars*)malloc(threads* blocks * sizeof(vars));
-    Vars* variables_dev = NULL;
-    
-
-    for (int i=0; i<threads*blocks; i++) {
-        variables_host[i].userspace = user_space_dev;
-    }
-
-
-    cudaMalloc((void**)&variables_dev,threads*blocks*sizeof(vars));
-    cudaMemcpy(variables_dev, variables_host, threads*blocks*sizeof(vars), cudaMemcpyHostToDevice);
-
 
     // Launch example kernel
     typedef std::chrono::high_resolution_clock Clock;
@@ -71,7 +58,7 @@ int main()
 
     for (int j=0;j<50;j++) {
         example1_kernel<float><<<Grid,Block>>>(stack_dev,stacksize,opstack_dev,
-        valuesstack_dev,outputstack_dev,outputstacksize,threads*blocks, variables_dev);
+        valuesstack_dev,outputstack_dev,outputstacksize,threads*blocks, user_space_dev);
         cudaDeviceSynchronize();
     }
 

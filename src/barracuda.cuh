@@ -53,7 +53,7 @@ template<class F, class I, class L>
 __device__
 void eval(I type, I* stack, I &stackidx, I &stacksize, long long* opstack,
 double* valuestack, double* outputstack, I &outputstackidx, 
-L tid, I nt, Vars &variables, I* loop_stack, I &loop_idx )
+L tid, I nt, double* userspace, I* loop_stack, I &loop_idx )
 {
     long long op = read(opstack, stackidx);
     double value = read(valuestack, stackidx);
@@ -61,7 +61,7 @@ L tid, I nt, Vars &variables, I* loop_stack, I &loop_idx )
     switch(type) {
         case Instructions::OP: 
         {
-            operation<F>(op, outputstack, outputstackidx, nt, 0, variables);
+            operation<F>(op, outputstack, outputstackidx, tid, nt, 0, userspace);
             break;
         }
         case Instructions::VALUE:
@@ -89,12 +89,12 @@ L tid, I nt, Vars &variables, I* loop_stack, I &loop_idx )
         case Instructions::SI_VALUE_OP:
         {
             push_t(outputstack, outputstackidx, value, nt);
-            operation<F>(op, outputstack, outputstackidx, nt, 0, variables);
+            operation<F>(op, outputstack, outputstackidx, tid, nt, 0, userspace);
             break;
         }
         case Instructions::SI_OP_VALUE: 
         {
-            operation<F>(op, outputstack, outputstackidx, nt, 0, variables);
+            operation<F>(op, outputstack, outputstackidx, tid, nt, 0, userspace);
             push_t(outputstack, outputstackidx, value, nt);
             break;
         }
@@ -122,9 +122,6 @@ L tid, I nt, Vars &variables, I* loop_stack, I &loop_idx )
             }
             // Otherwise goto start of loop.
             else {
-                // Reset program counter
-                variables.PC = stacksize - loop_stack[3*(loop_idx-1)];
-
                 // Swap indicies/sizes
                 stackidx = loop_stack[3*(loop_idx-1)];
             }
@@ -135,7 +132,7 @@ L tid, I nt, Vars &variables, I* loop_stack, I &loop_idx )
             // function pointer operation
             #if MSTACK_UNSAFE==1
                 if (type<0) {
-                    operation<F>(type, op, outputstack, outputstackidx, nt, 0, variables);
+                    operation<F>(type, op, outputstack, outputstackidx, nt);
                     break;
                 }
             #endif
@@ -148,7 +145,7 @@ L tid, I nt, Vars &variables, I* loop_stack, I &loop_idx )
 template<class F, class I, class L>
 __device__
 inline void evaluateStackExpr(I* stack, I stacksize, long long* opstack, double* valuestack,
-    double* outputstack, I outputstacksize, L tid, I nt, Vars &variables) 
+    double* outputstack, I outputstacksize, L tid, I nt, double* userspace) 
 {
 
     // Make local versions of idxs for each thread
@@ -159,15 +156,10 @@ inline void evaluateStackExpr(I* stack, I stacksize, long long* opstack, double*
 
     I type;
 
-    variables.TID = tid;
-
     // array + idx for nested loop "slots"
     // Change this in future to be implementation-allocated.
     I loop_stack[3*MSTACK_LOOP_NEST_LIMIT];
     I loop_idx = 0;
-
-    // Set program counter back to 0
-    variables.PC = 0;
 
     while (l_stackidx>0) {
 
@@ -176,23 +168,8 @@ inline void evaluateStackExpr(I* stack, I stacksize, long long* opstack, double*
 
         eval<F>(type, stack, l_stackidx, l_stacksize, opstack, valuestack, 
                 outputstack, l_outputstackidx,
-                tid, nt, variables, loop_stack, loop_idx);
+                tid, nt, userspace, loop_stack, loop_idx);
 
-        // Advance program counter
-        variables.PC = l_stacksize - l_stackidx;
     }
 }
-
-
-// Function overload for when expression contains no Variables and struct not provided.
-template<class I, class F, class L>
-__device__
-inline void evaluateStackExpr(I* stack, I stacksize, long long* opstack, double* valuestack,
-    F* outputstack, I outputstacksize, L tid, I nt ) {
-    Vars Variables;
-    return evaluateStackExpr(stack, stacksize, opstack,
-        valuestack, outputstack, outputstacksize, tid, nt, Variables);
-}
-
-
 #endif
