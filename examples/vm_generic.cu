@@ -64,10 +64,6 @@ void solver(int* instructions, long long* ops, double* values,
     cudaMalloc((void**)&outputstack_dev,output_stack_size*threads*blocks*sizeof(double));
     cudaMemset(outputstack_dev,0,output_stack_size*threads*blocks*sizeof(double));
 
-    Vars variables;
-    Vars* variables_host  = NULL;
-    Vars* variables_dev  = NULL;
-
     double* user_space_dev = NULL;
 
     int total_user_space_size = (NUM_VARS_TOTAL + user_space_size) * Block.y * Grid.x;
@@ -79,21 +75,13 @@ void solver(int* instructions, long long* ops, double* values,
     cudaMemset((void**)&user_space_dev, 0, total_user_space_size*sizeof(double));
     cudaMemcpy(user_space_dev + user_space_offset, user_space, user_space_size_threaded*sizeof(double), cudaMemcpyHostToDevice);
 
-    variables_host = (Vars*)malloc(Block.y*Grid.x*sizeof(variables));
-
-    for (int i=0; i<(Block.y*Grid.x); i++) {
-        variables_host[i].userspace = user_space_dev;
-    }
-
-    cudaMalloc((void**)&variables_dev,Block.y*Grid.x*sizeof(variables));
-    cudaMemcpy(variables_dev, variables_host, Block.y*Grid.x*sizeof(variables), cudaMemcpyHostToDevice);
 
 
     // Launch example kernel
     typedef std::chrono::high_resolution_clock Clock;
     auto t1 = Clock::now();
-    generic_kernel<f3264><<<Grid,Block>>>(stack_dev, stack_size, opstack_dev, stack_size,
-    valuesstack_dev, stack_size, outputstack_dev, output_stack_size, variables_dev, threads*blocks);
+    generic_kernel<f3264><<<Grid,Block>>>(stack_dev, stack_size, opstack_dev,
+    valuesstack_dev, outputstack_dev, output_stack_size, user_space_dev, threads*blocks);
     cudaDeviceSynchronize();
     auto t2 = Clock::now();
 

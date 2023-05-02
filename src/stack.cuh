@@ -12,10 +12,12 @@
  #ifndef _STACK_CUH
  #define _STACK_CUH
 
-//forward declaration
-template<class I, class F>
-inline __device__ F integrate(I intmethod, I maxstep, F accuracy, I functype, long long function, F llim, F ulim,
-            double* outputstack, I &o_stackidx, I nt);
+ #if MSTACK_SPECIALS==1
+    //forward declaration, if enabled...
+    template<class I, class F>
+    inline __device__ F integrate(I intmethod, I maxstep, F accuracy, I functype, long long function, F llim, F ulim,
+                double* outputstack, I &o_stackidx, I nt);
+#endif
 
 enum OPCODES {
 
@@ -24,6 +26,7 @@ enum OPCODES {
 
     // Read and write from specific location on stack.
     SREAD = 0x1, SWRITE,
+    SADD_P, SSUB_P,
 
     // Basic opcodes
     ADD = 0x3CC, SUB, MUL,
@@ -89,6 +92,7 @@ enum OPCODES {
     // Load special variables
     LDPC = 0x12FC, LDTID,
     LDNXPTR, LDSTK_PTR, RCSTK_PTR,
+    LDNT,
 
     // Lower (0) and upper (1) ranges for Load and Store into Nth variate userspace.
     LDNX0 = 0xF4240,
@@ -99,20 +103,6 @@ enum OPCODES {
 
 
 
-};
-
-//template<class F>
-struct __align__(64) Vars {
-    __host__ __device__ Vars(): 
-
-    // Program counter and thread id, internal read-only variables.
-    PC(0), TID(0) { }
-
-    // Internal use only, but can be loaded
-    unsigned int PC, TID;
-
-    // Allocated User-space
-    double* userspace;
 };
 
 template<class U, class I>
@@ -162,19 +152,22 @@ inline void push_t(T* stack, I &stackidx, U value, I nt) {
     stackidx = stackidx+nt;
 }
 
+// Read a value from a stack at same head position as stack index
+template<class U, class I>
+__device__
+inline U read(U* stack, I stackidx) {
+    return stack[stackidx];
+}
+
 // Jump/GOTO position on instruction stack
 template<class T, class I>
 __device__
-inline void jmp(T* stack, I &stackidx, I stacksize, I &opstackidx, I &valuestackidx, I pos) {
+inline void jmp(T* stack, I &stackidx, I stacksize, I pos) {
     // Make sure goto is bounded between 0 and alloc(stack), otherwise just go to end (or beginning if <0)
     pos = pos >= 0 ? pos : 0;
     pos = pos <= stacksize ? pos : stacksize;
     // Adjust stackidx to "goto" pos.
     stackidx  = (I)(stacksize - pos);
-    opstackidx = stackidx;
-    valuestackidx = stackidx;
-    // Adjust program counter to pos.
-    //PC = pos;
     return;
 }
 
@@ -193,9 +186,9 @@ inline void jmp(T* stack, I &stackidx, I stacksize, I &opstackidx, I &valuestack
  * @param mode recursive/irrecursive mode (0 means recursion allowed, 1 prevents function recursion).
  * @param variables Struct symbolic variable storage for loading/storing values from symbols
  */
-template<class F, class I>
+template<class F, class I, class L>
 __device__
-inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I mode, Vars &variables) {
+inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I nt, I mode, double* userspace) {
     F value, v1, v2;
     double lvalue, lv1, lv2;
     long long livalue, liv1, liv2;
@@ -206,22 +199,20 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
             break;
         }
         
-        // Stack read and write instructions
+        // Stack read, and write, pointer add, pointer sub instructions
         case SREAD:
         {
             push_t(outputstack,o_stackidx, 
-            outputstack[__double_as_longlong(pop_t(outputstack,o_stackidx,nt))*nt + variables.TID],nt);
+            outputstack[__double_as_longlong(pop_t(outputstack,o_stackidx,nt))*nt + tid],nt);
             break;
         }
         case SWRITE:
         {
             lv1 = pop_t(outputstack,o_stackidx,nt);
             lv2 = pop_t(outputstack,o_stackidx,nt);
-            outputstack[__double_as_longlong(lv2)*nt + variables.TID] = lv1;
+            outputstack[__double_as_longlong(lv2)*nt + tid] = lv1;
             break;
         }
-
-
 
         // Basic Operations
         case ADD:
@@ -1090,7 +1081,7 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         {
             char char_v = (char)(long long)pop_t(outputstack, o_stackidx, nt);
             long long thread = (long long)pop_t(outputstack, o_stackidx, nt);
-            if (thread==variables.TID)
+            if (thread==tid)
                 printf("%c",char_v);
             break;
         }
@@ -1104,7 +1095,7 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         {
             value = (F)(long long)pop_t(outputstack, o_stackidx, nt);
             long long thread = (long long)pop_t(outputstack, o_stackidx, nt);
-            if (thread==variables.TID)
+            if (thread==tid)
                 printf("%f",value);
             break;
         }
@@ -1132,30 +1123,33 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
             }
         #endif
 
-        case LDPC:
-        {
-            push_t(outputstack, o_stackidx, variables.PC, nt);
-            break;
-        }
         case LDTID:
         {
-            push_t(outputstack, o_stackidx, variables.TID, nt);
+            push_t(outputstack, o_stackidx, __longlong_as_double((long long)tid), nt);
             break;
         }
         case LDNXPTR:
         {
-            push_t(outputstack, o_stackidx, __longlong_as_double(
-                (long long)&variables.userspace[variables.TID + __double_as_longlong(pop_t(outputstack, o_stackidx, nt))*nt]), nt);
+            if (userspace != NULL) {
+                push_t(outputstack, o_stackidx, __longlong_as_double(
+                    (long long)&userspace[tid + __double_as_longlong(pop_t(outputstack, o_stackidx, nt))*nt]), nt);
+            }
             break;
         }
         case LDSTK_PTR:
         {
-            push_t(outputstack, o_stackidx, __longlong_as_double((long long)o_stackidx), nt);
+            push_t(outputstack, o_stackidx, __longlong_as_double(((L)o_stackidx - tid) / (L)nt), nt);
             break;
         }
         case RCSTK_PTR:
         {
-            o_stackidx = (I)__double_as_longlong(pop_t(outputstack, o_stackidx, nt));
+            lv1 = pop_t(outputstack, o_stackidx, nt);
+            o_stackidx = (I)(__double_as_longlong(lv1) * nt + tid);
+            break;
+        }
+        case LDNT:
+        {
+            push_t(outputstack, o_stackidx, __longlong_as_double((long long)nt), nt);
             break;
         }
 
@@ -1163,12 +1157,12 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
         default:
         {
             // Load operation, push value to the stack from userspace indexed by tid and (op-LDNX0) delta.
-            if (op >= LDNX0 && op <= LDNX1) {
-                push_t(outputstack, o_stackidx, (double)variables.userspace[variables.TID + (op-LDNX0)*nt], nt);
+            if (op >= LDNX0 && op <= LDNX1 && userspace != NULL) {
+                push_t(outputstack, o_stackidx, (double)userspace[tid + (op-LDNX0)*nt], nt);
             }
             // Store operation, store value from the stack to userspace indexed by tid and (op-RCNX0) delta.
-            else if (op >= RCNX0 && op < RCNX1) {
-                variables.userspace[variables.TID + (op-RCNX0)*nt] = (F)pop_t(outputstack, o_stackidx, nt);
+            else if (op >= RCNX0 && op < RCNX1 && userspace != NULL) {
+                userspace[tid + (op-RCNX0)*nt] = (F)pop_t(outputstack, o_stackidx, nt);
             }
             // Else do nothing.
             else {
@@ -1180,21 +1174,11 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I 
 
 }
 
-
-// Overloaded normal operation function for no variables provided, just create an empty struct and pass in.
-template<class F, class I>
-__device__
-inline void operation(long long op, double* outputstack, I &o_stackidx, I nt, I mode) {
-    Vars variables;
-    operation<F>(op, outputstack, o_stackidx, nt, mode, variables);
-}
-
-
 // Overloaded operation function for function pointers of arbitrary functions up to order 8. This is UNSAFE
 #if MSTACK_UNSAFE==1
 template<class F, class I>
 __device__
-inline void operation(I type, long long op, double* outputstack, I &o_stackidx, I nt, I mode, Vars &variables) {
+inline void operation(I type, long long op, double* outputstack, I &o_stackidx, I nt) {
     if (op==OPNULL)
         return;
     I nargs = abs(type);
@@ -1303,12 +1287,6 @@ inline void operation(I type, long long op, double* outputstack, I &o_stackidx, 
         }
     }
 }
-// Overloaded function-pointer operation function for no variables provided, just create an empty struct and pass in.
-template<class F, class I>
-__device__
-inline void operation(I type, long long op, double* outputstack, I &o_stackidx, I nt, I mode) {
-    Vars variables;
-    operation<F>(type, op, outputstack, o_stackidx, nt, mode, variables);
-}
 #endif
+
 #endif

@@ -28,20 +28,18 @@ int main()
     int* stack_dev = NULL;
     int stacksize = 8;
     long long* opstack_dev = NULL;
-    int opstacksize = 8;
     double* valuesstack_dev = NULL;
-    int valuestacksize = 8;
     double* outputstack_dev = NULL;
     int outputstacksize = 0;
 
     cudaMalloc((void**)&stack_dev,stacksize*sizeof(int));
     cudaMemcpy(stack_dev,stack,stacksize*sizeof(int),cudaMemcpyHostToDevice);
 
-    cudaMalloc((void**)&opstack_dev,opstacksize*sizeof(long long));
-    cudaMemcpy(opstack_dev,ops,opstacksize*sizeof(long long),cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&opstack_dev,stacksize*sizeof(long long));
+    cudaMemcpy(opstack_dev,ops,stacksize*sizeof(long long),cudaMemcpyHostToDevice);
 
-    cudaMalloc((void**)&valuesstack_dev,valuestacksize*sizeof(double));
-    cudaMemcpy(valuesstack_dev,values,valuestacksize*sizeof(double),cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&valuesstack_dev,stacksize*sizeof(double));
+    cudaMemcpy(valuesstack_dev,values,stacksize*sizeof(double),cudaMemcpyHostToDevice);
 
     cudaMalloc((void**)&outputstack_dev,10*threads*blocks*sizeof(double));
     cudaMemset(outputstack_dev,0,10*threads*blocks*sizeof(double));
@@ -51,8 +49,8 @@ int main()
     auto t1 = Clock::now();
 
     for (int j=0;j<1;j++) {
-        example3_kernel<<<Grid,Block>>>(stack_dev,stacksize,opstack_dev,opstacksize,
-        valuesstack_dev,valuestacksize,outputstack_dev,outputstacksize,threads*blocks);
+        example3_kernel<<<Grid,Block>>>(stack_dev,stacksize,opstack_dev,
+        valuesstack_dev,outputstack_dev,outputstacksize,threads*blocks);
         cudaDeviceSynchronize();
     }
 
