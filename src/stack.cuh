@@ -213,22 +213,6 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I
             outputstack[__double_as_longlong(lv2)*nt + tid] = lv1;
             break;
         }
-        case SADD_P:
-        {
-            liv1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
-            liv2 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
-            push_t(outputstack, o_stackidx, __longlong_as_double(lv2 + lv1*nt), nt);
-            break;
-        }
-        case SSUB_P:
-        {
-            liv1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
-            liv2 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
-            push_t(outputstack, o_stackidx, __longlong_as_double(lv2 - lv1*nt), nt);
-            break;
-        }
-
-
 
         // Basic Operations
         case ADD:
@@ -1154,12 +1138,13 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I
         }
         case LDSTK_PTR:
         {
-            push_t(outputstack, o_stackidx, __longlong_as_double((long long)o_stackidx), nt);
+            push_t(outputstack, o_stackidx, __longlong_as_double(((L)o_stackidx - tid) / (L)nt), nt);
             break;
         }
         case RCSTK_PTR:
         {
-            o_stackidx = (I)__double_as_longlong(pop_t(outputstack, o_stackidx, nt));
+            lv1 = pop_t(outputstack, o_stackidx, nt);
+            o_stackidx = (I)(__double_as_longlong(lv1) * nt + tid);
             break;
         }
         case LDNT:
