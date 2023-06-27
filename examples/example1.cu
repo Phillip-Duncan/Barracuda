@@ -13,19 +13,21 @@
 
 int main() 
 {
-    const int threads = 128;
-    const int blocks = 128;
+    const int threads = 1;
+    const int blocks = 1;
     dim3 Grid(blocks,1,1);
     dim3 Block(1,threads,1);
 
-    double values[10] = {0,0,0,0,0,0,0,5,6,10};
-    long long ops[10] = {0x3CF,0x3CE,1000000,0x3CE,1000000,0x7E4,0x3CC,0,0,0};
-    int stack[10] = {0,0,0,0,0,0,0,1,1,1};
+    double ldid = 0.0; // 0 is same for i64 and f64
+
+    double values[12] = {0,0,0,ldid,0,0,ldid,0,0,5,6,10};
+    long long ops[12] = {DIV,MUL,LDNX,0,MUL,LDNX,0,SIN,ADD,0,0,0};
+    int stack[12] = {0,0,0,1,0,0,1,0,0,1,1,1};
     double output[6*threads*blocks] =   {0};
 
     // Allocate some memory for stack expressions
     int* stack_dev = NULL;
-    int stacksize = 10;
+    int stacksize = 12;
     long long* opstack_dev = NULL;
     double* valuesstack_dev = NULL;
     double* outputstack_dev = NULL;

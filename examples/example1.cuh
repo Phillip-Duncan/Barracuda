@@ -9,7 +9,7 @@
 #include <chrono>
 
 template<class F>
-__global__ 
+__global__
 void example1_kernel(int* stack, int stacksize, long long* opstack,
     double* valuestack, double* outputstack, int outputstacksize, int Nthreads,
     double* userspace) 
@@ -19,7 +19,7 @@ void example1_kernel(int* stack, int stacksize, long long* opstack,
 
     unsigned int tid = (blockIdx.x * blockDim.y) + (blockIdx.y * gridDim.x * blockDim.y) + threadIdx.y;
 
-    userspace[tid] = 1.569492;
+    userspace[tid] = 1.5;
 
     for(int i=0;i<1000;i++) {
         evaluateStackExpr<F>(stack,s_size,opstack, valuestack,

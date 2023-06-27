@@ -94,14 +94,8 @@ enum OPCODES {
     LDNXPTR, LDSTK_PTR, RCSTK_PTR,
     LDNT,
 
-    // Lower (0) and upper (1) ranges for Load and Store into Nth variate userspace.
-    LDNX0 = 0xF4240,
-    LDNX1 = 0x4C4B40,
-
-    RCNX0 = 0x4C4B41,
-    RCNX1 = 0x895441
-
-
+    LDNX,
+    RCNX,
 
 };
 
@@ -1152,22 +1146,16 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I
             push_t(outputstack, o_stackidx, __longlong_as_double((long long)nt), nt);
             break;
         }
-
-        // Default case for Load/store vars from userspace, this ensures switch statement still a jump table.
-        default:
+        case LDNX:
         {
-            // Load operation, push value to the stack from userspace indexed by tid and (op-LDNX0) delta.
-            if (op >= LDNX0 && op <= LDNX1 && userspace != NULL) {
-                push_t(outputstack, o_stackidx, (double)userspace[tid + (op-LDNX0)*nt], nt);
-            }
-            // Store operation, store value from the stack to userspace indexed by tid and (op-RCNX0) delta.
-            else if (op >= RCNX0 && op < RCNX1 && userspace != NULL) {
-                userspace[tid + (op-RCNX0)*nt] = (F)pop_t(outputstack, o_stackidx, nt);
-            }
-            // Else do nothing.
-            else {
-                break;
-            }
+            livalue = __double_as_longlong(pop_t(outputstack, o_stackidx, nt));
+            push_t(outputstack, o_stackidx, (double)userspace[tid + (livalue)*nt], nt);
+            break;
+        }
+        case RCNX:
+        {
+            livalue = __double_as_longlong(pop_t(outputstack, o_stackidx, nt));
+            userspace[tid + (livalue)*nt] = pop_t(outputstack, o_stackidx, nt);
             break;
         }
     }
