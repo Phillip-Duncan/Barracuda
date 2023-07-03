@@ -1158,7 +1158,7 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I
         case LDUSPTR:
         {
             if (userspace != NULL) {
-                push_t(outputstack, o_stackidx, __longlong_as_double((long long)&userspace), nt);
+                push_t(outputstack, o_stackidx, __longlong_as_double((long long)&userspace[0]), nt);
             }
             break;
         }
