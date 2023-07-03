@@ -92,10 +92,7 @@ enum OPCODES {
     // Load special variables
     LDPC = 0x12FC, LDTID,
     LDNXPTR, LDSTK_PTR, RCSTK_PTR,
-    LDNT,
-
-    LDNX,
-    RCNX,
+    LDNT, LDNX, RCNX, LDUSPTR,
 
 };
 
@@ -1156,6 +1153,13 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I
         {
             livalue = __double_as_longlong(pop_t(outputstack, o_stackidx, nt));
             userspace[tid + (livalue)*nt] = pop_t(outputstack, o_stackidx, nt);
+            break;
+        }
+        case LDUSPTR:
+        {
+            if (userspace != NULL) {
+                push_t(outputstack, o_stackidx, __longlong_as_double((long long)&userspace), nt);
+            }
             break;
         }
     }
