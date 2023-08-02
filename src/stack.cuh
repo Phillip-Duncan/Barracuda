@@ -94,6 +94,10 @@ enum OPCODES {
     LDNXPTR, LDSTK_PTR, RCSTK_PTR,
     LDNT, LDNX, RCNX, LDUSPTR,
 
+    // Type-casting opcodes, these cause truncation of the value.
+    LONGLONGTODOUBLE = 0x16C8,
+    DOUBLETOLONGLONG,
+
 };
 
 template<class U, class I>
@@ -1160,6 +1164,17 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I
             if (userspace != NULL) {
                 push_t(outputstack, o_stackidx, __longlong_as_double((long long)&userspace[0]), nt);
             }
+            break;
+        }
+
+        case LONGLONGTODOUBLE:
+        {
+            push_t(outputstack, o_stackidx, (double)__double_as_longlong(pop_t(outputstack, o_stackidx, nt)), nt);
+            break;
+        }
+        case DOUBLETOLONGLONG:
+        {
+            push_t(outputstack, o_stackidx, __longlong_as_double((long long)pop_t(outputstack, o_stackidx, nt)), nt);
             break;
         }
     }
