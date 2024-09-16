@@ -1068,30 +1068,56 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I
         //Syscall operations
         case PRINTC:
         {
-            char char_v = (char)(long long)pop_t(outputstack, o_stackidx, nt);
-            printf("%c",char_v);
+            lv1 = (F)pop_t(outputstack, o_stackidx, nt); // lv1 is of type F (float or double)
+            
+            // Reinterpret the bits of lv1 as a 64-bit integer for consistency
+            livalue = (sizeof(F) == sizeof(float)) ? (long long)__float_as_int(lv1) : __double_as_longlong(lv1);
+        
+            char char_v;
+            for (int i = 0; i < sizeof(F); i++) {
+                // Extract the byte at position i and print it as a character
+                char_v = (char)((livalue >> (i * 8)) & 0xFF);
+                
+                if (char_v == '\0' ) continue; // Don't print null chars (but continue do not terminate).
+
+                printf("%c", char_v);
+            }
             break;
-        }
+        }       
         case PRINTCT:
         {
-            char char_v = (char)(long long)pop_t(outputstack, o_stackidx, nt);
-            long long thread = (long long)pop_t(outputstack, o_stackidx, nt);
-            if (thread==tid)
-                printf("%c",char_v);
+            lv1 = (F)pop_t(outputstack, o_stackidx, nt); // lv1 is of type F (float or double)
+            
+            // Reinterpret the bits of lv1 as a 64-bit integer for consistency
+            livalue = (sizeof(F) == sizeof(float)) ? (long long)__float_as_int(lv1) : __double_as_longlong(lv1);
+            long long thread = __double_as_longlong(pop_t(outputstack, o_stackidx, nt));
+        
+            char char_v;
+            for (int i = 0; i < sizeof(F); i++) {
+                // Extract the byte at position i and print it as a character if the thread matches
+                char_v = (char)((livalue >> (i * 8)) & 0xFF);
+
+                if (char_v == '\0' ) continue; // Don't print null chars (but continue do not terminate).
+
+                (thread==tid) ? printf("%c", char_v) : NULL;
+            }
             break;
         }
         case PRINTF:
         {
-            value = (F)(long long)pop_t(outputstack, o_stackidx, nt);
+            // Print float value
+            value = (F)pop_t(outputstack, o_stackidx, nt);
             printf("%f",value);
             break;
         }
         case PRINTFT:
         {
-            value = (F)(long long)pop_t(outputstack, o_stackidx, nt);
-            long long thread = (long long)pop_t(outputstack, o_stackidx, nt);
-            if (thread==tid)
-                printf("%f",value);
+            // Print float value if thread matches
+            value = (F)pop_t(outputstack, o_stackidx, nt);
+            long long thread = __double_as_longlong(pop_t(outputstack, o_stackidx, nt));
+            //if (thread==tid)
+            //    printf("%f",value);
+            (thread==tid) ? printf("%f",value) : NULL;
             break;
         }
 
