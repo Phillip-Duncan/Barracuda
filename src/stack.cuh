@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2022-06-30
  * 
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2022-2025
  * 
  */
 
@@ -46,17 +46,17 @@ enum OPCODES {
     // Extra Memory instruction codes
     PTR_DEREF,
 
-    READ_U8, READ_U16, READ_U32, READ_U64,
-    READ_I8, READ_I16, READ_I32, READ_I64,
-    READ_F8, READ_F16, READ_F32, READ_F64,
-    READ_C8, READ_C16, READ_C32, READ_C64,
-    READ_UC8, READ_UC16, READ_UC32, READ_UC64,
+    // Floating point read/write opcodes
+    READ_F32, READ_F64,
+    WRITE_F32, WRITE_F64,
 
-    WRITE_U8, WRITE_U16, WRITE_U32, WRITE_U64,
-    WRITE_I8, WRITE_I16, WRITE_I32, WRITE_I64,
-    WRITE_F8, WRITE_F16, WRITE_F32, WRITE_F64,
-    WRITE_C8, WRITE_C16, WRITE_C32, WRITE_C64,
-    WRITE_UC8, WRITE_UC16, WRITE_UC32, WRITE_UC64,
+    // Integer read/write opcodes
+    READ_I32, READ_I64,
+    WRITE_I32, WRITE_I64,
+
+    // Char read/write opcodes
+    READ_CHAR, WRITE_CHAR,
+
 
     // Mathematical operator opcodes 
     // https://docs.nvidia.com/cuda/cuda-math-api/group__CUDA__MATH__DOUBLE.html#group__CUDA__MATH__DOUBLE
@@ -184,9 +184,9 @@ inline void jmp(T* stack, I &stackidx, I stacksize, I pos) {
 template<class F, class I, class L>
 __device__
 inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I nt, I mode, double* userspace) {
-    F value, v1, v2;
-    double lvalue, lv1, lv2;
-    long long livalue, liv1, liv2;
+    F value, v1, v2; // Mixed-precision floats.
+    double lvalue, lv1, lv2; // Fixed double-precision values.
+    long long livalue, liv1, liv2; // Fixed long long values.
     switch(op) {
         // Null operation
         case OPNULL:
@@ -474,6 +474,86 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I
             if(addr!=NULL) {
                 push_t(outputstack,o_stackidx,__longlong_as_double((long long)(*addr)), nt);
             }
+            break;
+        }
+        case READ_F32:
+        {
+            float* addr = (float*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            if(addr!=NULL) {
+                push_t(outputstack,o_stackidx,*addr, nt);
+            }
+            break;
+        }
+        case READ_F64:
+        {
+            double* addr = (double*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            if(addr!=NULL) {
+                push_t(outputstack,o_stackidx,*addr, nt);
+            }
+            break;
+        }
+        case WRITE_F32:
+        {
+            value = (float)pop_t(outputstack,o_stackidx,nt);
+            float* addr = (float*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            if(addr!=NULL)
+                *addr = value;
+            break;
+        }
+        case WRITE_F64:
+        {
+            lvalue = pop_t(outputstack,o_stackidx,nt);
+            double* addr = (double*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            if(addr!=NULL)
+                *addr = lvalue;
+            break;
+        }
+        case READ_I32:
+        {
+            int* addr = (int*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            if(addr!=NULL) {
+                push_t(outputstack,o_stackidx,__int_as_float(*addr), nt);
+            }
+            break;
+        }
+        case READ_I64:
+        {
+            long long* addr = (long long*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            if(addr!=NULL) {
+                push_t(outputstack,o_stackidx,__longlong_as_double(*addr), nt);
+            }
+            break;
+        }
+        case WRITE_I32:
+        {
+            livalue = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            int* addr = (int*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            if(addr!=NULL)
+                *addr = (int)livalue;
+            break;
+        }
+        case WRITE_I64:
+        {
+            livalue = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            long long* addr = (long long*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            if(addr!=NULL)
+                *addr = livalue;
+            break;
+        }
+        case READ_CHAR:
+        {
+            char* addr = (char*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            if(addr!=NULL) {
+                push_t(outputstack,o_stackidx,__longlong_as_double((long long)*addr), nt);
+            }
+            break;
+        }
+        case WRITE_CHAR:
+        {
+            livalue = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            char* addr = (char*)__double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            if(addr!=NULL)
+                *addr = (char)livalue;
             break;
         }
 
@@ -1068,13 +1148,10 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I
         //Syscall operations
         case PRINTC:
         {
-            lv1 = (F)pop_t(outputstack, o_stackidx, nt); // lv1 is of type F (float or double)
-            
-            // Reinterpret the bits of lv1 as a 64-bit integer for consistency
-            livalue = (sizeof(F) == sizeof(float)) ? (long long)__float_as_int(lv1) : __double_as_longlong(lv1);
-        
+            livalue = __double_as_longlong(pop_t(outputstack, o_stackidx, nt));
             char char_v;
-            for (int i = 0; i < sizeof(F); i++) {
+
+            for (int i = 0; i < sizeof(long long); i++) {
                 // Extract the byte at position i and print it as a character
                 char_v = (char)((livalue >> (i * 8)) & 0xFF);
                 
@@ -1086,14 +1163,11 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I
         }       
         case PRINTCT:
         {
-            lv1 = (F)pop_t(outputstack, o_stackidx, nt); // lv1 is of type F (float or double)
-            
-            // Reinterpret the bits of lv1 as a 64-bit integer for consistency
-            livalue = (sizeof(F) == sizeof(float)) ? (long long)__float_as_int(lv1) : __double_as_longlong(lv1);
+            livalue = __double_as_longlong(pop_t(outputstack, o_stackidx, nt));
             long long thread = __double_as_longlong(pop_t(outputstack, o_stackidx, nt));
         
             char char_v;
-            for (int i = 0; i < sizeof(F); i++) {
+            for (int i = 0; i < sizeof(long long); i++) {
                 // Extract the byte at position i and print it as a character if the thread matches
                 char_v = (char)((livalue >> (i * 8)) & 0xFF);
 
@@ -1206,120 +1280,5 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I
     }
 
 }
-
-// Overloaded operation function for function pointers of arbitrary functions up to order 8. This is UNSAFE
-#if MSTACK_UNSAFE==1
-template<class F, class I>
-__device__
-inline void operation(I type, long long op, double* outputstack, I &o_stackidx, I nt) {
-    if (op==OPNULL)
-        return;
-    I nargs = abs(type);
-    long long addr = op;
-    F value, v1, v2, v3, v4, v5, v6, v7, v8;
-    switch(nargs) {
-        case 1:
-        {
-            v1 = (F)pop_t(outputstack,o_stackidx,nt);
-            using fn = F(F);
-            fn* func = (fn*) addr;
-            value = (*func)(v1);
-            push_t(outputstack,o_stackidx, value, nt);
-            break;
-        }
-        case 2:
-        {
-            v1 = (F)pop_t(outputstack,o_stackidx,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,nt);
-            using fn = F(F,F);
-            fn* func = (fn*) addr;
-            value = (*func)(v2,v1);
-            push_t(outputstack,o_stackidx, value, nt);
-            break;
-        }
-        case 3:
-        {
-            v1 = (F)pop_t(outputstack,o_stackidx,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,nt);
-            v3 = (F)pop_t(outputstack,o_stackidx,nt);
-            using fn = F(F,F,F);
-            fn* func = (fn*) addr;
-            value = (*func)(v3,v2,v1);
-            push_t(outputstack,o_stackidx, value, nt);
-            break;
-        }
-        case 4:
-        {
-            v1 = (F)pop_t(outputstack,o_stackidx,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,nt);
-            v3 = (F)pop_t(outputstack,o_stackidx,nt);
-            v4 = (F)pop_t(outputstack,o_stackidx,nt);
-            using fn = F(F,F,F,F);
-            fn* func = (fn*) addr;
-            value = (*func)(v4,v3,v2,v1);
-            push_t(outputstack,o_stackidx, value, nt);
-            break;
-        }
-        case 5:
-        {
-            v1 = (F)pop_t(outputstack,o_stackidx,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,nt);
-            v3 = (F)pop_t(outputstack,o_stackidx,nt);
-            v4 = (F)pop_t(outputstack,o_stackidx,nt);
-            v5 = (F)pop_t(outputstack,o_stackidx,nt);
-            using fn = F(F,F,F,F,F);
-            fn* func = (fn*) addr;
-            value = (*func)(v5,v4,v3,v2,v1);
-            push_t(outputstack,o_stackidx, value, nt);
-            break;
-        }
-        case 6:
-        {
-            v1 = (F)pop_t(outputstack,o_stackidx,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,nt);
-            v3 = (F)pop_t(outputstack,o_stackidx,nt);
-            v4 = (F)pop_t(outputstack,o_stackidx,nt);
-            v5 = (F)pop_t(outputstack,o_stackidx,nt);
-            v6 = (F)pop_t(outputstack,o_stackidx,nt);
-            using fn = F(F,F,F,F,F,F);
-            fn* func = (fn*) addr;
-            value = (*func)(v6,v5,v4,v3,v2,v1);
-            push_t(outputstack,o_stackidx, value, nt);
-            break;
-        }
-        case 7:
-        {
-            v1 = (F)pop_t(outputstack,o_stackidx,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,nt);
-            v3 = (F)pop_t(outputstack,o_stackidx,nt);
-            v4 = (F)pop_t(outputstack,o_stackidx,nt);
-            v5 = (F)pop_t(outputstack,o_stackidx,nt);
-            v6 = (F)pop_t(outputstack,o_stackidx,nt);
-            v7 = (F)pop_t(outputstack,o_stackidx,nt);
-            using fn = F(F,F,F,F,F,F,F);
-            fn* func = (fn*) addr;
-            value = (*func)(v7,v6,v5,v4,v3,v2,v1);
-            push_t(outputstack,o_stackidx, value, nt);
-            break;
-        }
-        case 8:
-        {
-            v1 = (F)pop_t(outputstack,o_stackidx,nt);
-            v2 = (F)pop_t(outputstack,o_stackidx,nt);
-            v3 = (F)pop_t(outputstack,o_stackidx,nt);
-            v4 = (F)pop_t(outputstack,o_stackidx,nt);
-            v5 = (F)pop_t(outputstack,o_stackidx,nt);
-            v6 = (F)pop_t(outputstack,o_stackidx,nt);
-            v7 = (F)pop_t(outputstack,o_stackidx,nt);
-            v8 = (F)pop_t(outputstack,o_stackidx,nt);
-            using fn = F(F,F,F,F,F,F,F,F);
-            fn* func = (fn*) addr;
-            value = (*func)(v8,v7,v6,v5,v4,v3,v2,v1);
-            push_t(outputstack,o_stackidx, value, nt);
-            break;
-        }
-    }
-}
-#endif
 
 #endif

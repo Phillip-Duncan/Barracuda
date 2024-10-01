@@ -21,10 +21,6 @@
 #define MSTACK_SPECIALS 0
 #endif
 
-#ifndef MSTACK_LOOP_NEST_LIMIT
-#define MSTACK_LOOP_NEST_LIMIT 24
-#endif
-
 #include <stdio.h>
 
 #include "stack.cuh" // Include this before specials.cuh
@@ -42,18 +38,13 @@ enum Instructions {
     // Combination instructions (Single instruction, multiple actions).
     SI_VALUE_OP,
     SI_OP_VALUE,
-
-    // Built-in bounded for loop instructions.
-    LOOP_ENTRY = 99,
-    LOOP_EXIT
-
 };
 
 template<class F, class I, class L>
 __device__
 void eval(I type, I* stack, I &stackidx, I &stacksize, long long* opstack,
 double* valuestack, double* outputstack, I &outputstackidx, 
-L tid, I nt, double* userspace, I* loop_stack, I &loop_idx )
+L tid, I nt, double* userspace)
 {
     long long op = read(opstack, stackidx);
     double value = read(valuestack, stackidx);
@@ -98,44 +89,8 @@ L tid, I nt, double* userspace, I* loop_stack, I &loop_idx )
             push_t(outputstack, outputstackidx, value, nt);
             break;
         }
-        case Instructions::LOOP_ENTRY: 
-        {
-            I imax = (I)__double_as_longlong(pop_t(outputstack, outputstackidx, nt));
-            I i = (I)__double_as_longlong(pop_t(outputstack, outputstackidx, nt));
-            // Store stack locations of loop entry, i and imax.
-            loop_stack[3*loop_idx] = stackidx;
-            loop_stack[3*loop_idx+1] = i;
-            loop_stack[3*loop_idx+2] = imax;
-            loop_idx = loop_idx + 1;
-            break;
-        }
-        case Instructions::LOOP_EXIT:
-        {
-            // Compare values of i,imax to see whether loop has ended or continues
-            I i = loop_stack[3*(loop_idx-1)+1];
-            I imax = loop_stack[3*(loop_idx-1)+2];
-            i = i + 1;
-            loop_stack[3*(loop_idx-1)+1] = i;
-            // If loop has reached end decrement loop_idx and return
-            if (i>=imax){
-                loop_idx = loop_idx - 1;
-            }
-            // Otherwise goto start of loop.
-            else {
-                // Swap indicies/sizes
-                stackidx = loop_stack[3*(loop_idx-1)];
-            }
-            break;
-        }
         default:
         {
-            // function pointer operation
-            #if MSTACK_UNSAFE==1
-                if (type<0) {
-                    operation<F>(type, op, outputstack, outputstackidx, nt);
-                    break;
-                }
-            #endif
             break;
         }
 
@@ -145,7 +100,7 @@ L tid, I nt, double* userspace, I* loop_stack, I &loop_idx )
 template<class F, class I, class L>
 __device__
 inline void evaluateStackExpr(I* stack, I stacksize, long long* opstack, double* valuestack,
-    double* outputstack, I outputstacksize, L tid, I nt, double* userspace) 
+    double* outputstack, L tid, I nt, double* userspace) 
 {
 
     // Make local versions of idxs for each thread
@@ -156,11 +111,6 @@ inline void evaluateStackExpr(I* stack, I stacksize, long long* opstack, double*
 
     I type;
 
-    // array + idx for nested loop "slots"
-    // Change this in future to be implementation-allocated.
-    I loop_stack[3*MSTACK_LOOP_NEST_LIMIT];
-    I loop_idx = 0;
-
     while (l_stackidx>0) {
 
         // "Pop type from stack"
@@ -168,7 +118,7 @@ inline void evaluateStackExpr(I* stack, I stacksize, long long* opstack, double*
 
         eval<F>(type, stack, l_stackidx, l_stacksize, opstack, valuestack, 
                 outputstack, l_outputstackidx,
-                tid, nt, userspace, loop_stack, loop_idx);
+                tid, nt, userspace);
 
     }
 }

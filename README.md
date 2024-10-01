@@ -2,7 +2,9 @@
 
 A simple header-only pseudo-stack-based equation solver capable of running on the GPU in 'effective' stacksize-linear time. Evaluates inversely stored reverse polish notation (RPN) instructions from input stacks.
 
-## Required Inputs
+## Inputs
+
+### Required
 
 stack: an input integer instruction stack corresponding to whether a value or an operation is executed. Operations can also consist of loading (storing) arbitrary variables to the output stack. The stack is evaluated ("pop"-ed) last-to-first.
 stacksize: size of the instruction stack.
@@ -15,6 +17,10 @@ valuestacksize: size of the valuestack. The valuestack is evaluated ("pop"-ed) l
 
 outputstack: stack storing the "outputs" of applied operations or stores for future use. Operations from the opstack apply directly to the outputstack.  I.e. to perform multiplication of two variables, first load these into the output stack and then apply the OPCODE (0x3CE) in the opstack.
 
+### Optional
+
+user_space: if implemented via memory allocation/copy, allows users to use memory in the form of arrays. Some form of user_space should always be allocated for environment variables (if used) regardless, the "user" part of the user_space is the extension of the user_space past the environment variables to the maximum size of the number and sizes of allocated arrays by the user in their program code.
+
 ## Written Examples
 
 A = 2, B = 3, C = 4
@@ -25,27 +31,21 @@ expr(RPN): AB\*C+
 
 ```cpp
 stack[5] = {0,1,0,1,1}
-opstack[2] = {0x3CC, 0x3CE};
-valuestack[3] = {4,3,2};
+opstack[5] = {0x3CC,0,0x3CE,0,0};
+valuestack[5] = {0,4,0,3,2};
 ```
 
 The above code evaluates to:  
 push(2)  --> A  
 push(3)  --> B  
-v = mult(2,3) --> A\*B  
+v = MUL(2,3) --> A\*B  
 push(v) --> A\*B  
 push(4) --> C  
-v = add(6,4) --> A\*B + C  
+v = ADD(6,4) --> A\*B + C  
 push(v) --> A\*B + C  
 
-when mult, add or any operation are used, pop(outputstack) is called an appropriate number of times relative to the number of inputs the function requires.
+when MUL, ADD or any operation are used, pop(outputstack) is called an appropriate number of times relative to the number of inputs the function requires.
 
 ## Provided Examples
 
-example1: Simple example with 256 threads, 256 blocks repeating an iteration 50,000 times (1000 loops within each kernel instance and 50 instances of the kernel itself) of the expression { 10/(sin(6+5)\*1.5\*1.5) }, or in RPN notation { 10 6 5 + sin 1.5 \* 1.5 \*  / }.
-
-example2: Extension of example 1 but using the function pointer of atan2 as the final operation rather than the divide (and only looping over a single iteration). RPN notation of this expr is { 10 6 5 + sin 1.5 \* 1.5 \*  atan2 }.
-
-example3: Complex example solving an integral of the user-defined function sinh(x)cos(x) between [0,pi], with a maxstep of 1000, and desired accuracy of 0.0001.
-
-example4: For loop example, instructions 2 and 3 define the respective beginning and end of a FOR, FOREND statement, two values from the outputstack are popped to determine the initial index (i) and termination index (imax).
+All previous examples have now been deprecated due to several significant changes and the development of an open-source compiler for Barracuda. Due to this change the primary example of Barracuda is now vm_generic, which compiles a generic form standalone of the Barracuda VM (with two example environment variables set for testing). This generic VM is provided to allow for testing of arbitrary compiled Barracuda code from the rust barracuda compiler. A testing framework for this has been made in Python to implement tests that run both the compiler and the VM for end-to-end testing and validation.

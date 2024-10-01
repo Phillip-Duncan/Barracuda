@@ -75,28 +75,17 @@ void solver(int* instructions, long long* ops, double* values,
     cudaMemset((void**)&user_space_dev, 0, total_user_space_size*sizeof(double));
     cudaMemcpy(user_space_dev + user_space_offset, user_space, user_space_size_threaded*sizeof(double), cudaMemcpyHostToDevice);
 
-
-
     // Launch example kernel
-    typedef std::chrono::high_resolution_clock Clock;
-    auto t1 = Clock::now();
     generic_kernel<f3264><<<Grid,Block>>>(stack_dev, stack_size, opstack_dev,
-    valuesstack_dev, outputstack_dev, output_stack_size, user_space_dev, threads*blocks);
+    valuesstack_dev, outputstack_dev, user_space_dev, threads*blocks);
     cudaDeviceSynchronize();
-    auto t2 = Clock::now();
-
     cudaMemcpy(result,outputstack_dev,output_stack_size*threads*blocks*sizeof(double),cudaMemcpyDeviceToHost);
-
-
-    std::cout << "\n Elapsed time: " << (t2-t1).count()/1e9 << " s" << std::endl;
-    // Free memory
+    cudaMemcpy(user_space, user_space_dev + user_space_offset, user_space_size_threaded*sizeof(double), cudaMemcpyDeviceToHost);
 
     cudaFree(stack_dev);
     cudaFree(opstack_dev);
     cudaFree(valuesstack_dev);
     cudaFree(outputstack_dev);
-
-
 }
 
 
