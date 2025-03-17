@@ -6,7 +6,7 @@
  * @version 1.0
  * @date 2023-03-27
  * 
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023-Present
  * 
  */
 
@@ -41,7 +41,7 @@
 template<class f3264>
 void solver(int* instructions, long long* ops, double* values, 
     int stack_size, int output_stack_size, double* user_space, int user_space_size,
-    int blocks, int threads, double* result)
+    int blocks, int threads, double* result, double* rt_statistics)
 {
     dim3 Grid(blocks,1,1);
     dim3 Block(1,threads,1);
@@ -75,10 +75,23 @@ void solver(int* instructions, long long* ops, double* values,
     cudaMemset((void**)&user_space_dev, 0, total_user_space_size*sizeof(double));
     cudaMemcpy(user_space_dev + user_space_offset, user_space, user_space_size_threaded*sizeof(double), cudaMemcpyHostToDevice);
 
+    // Set up timer to time kernel execution for statistics
+
+    typedef std::chrono::high_resolution_clock Clock;
+    auto timer_start = Clock::now();
+
     // Launch example kernel
     generic_kernel<f3264><<<Grid,Block>>>(stack_dev, stack_size, opstack_dev,
     valuesstack_dev, outputstack_dev, user_space_dev, threads*blocks);
     cudaDeviceSynchronize();
+
+    auto timer_end = Clock::now();
+
+    // Calculate time taken and store in runtime statistics.
+    rt_statistics[0] = (timer_end - timer_start).count() / 1e9;
+    
+
+    // Copy memory back to host and free memory
     cudaMemcpy(result,outputstack_dev,output_stack_size*threads*blocks*sizeof(double),cudaMemcpyDeviceToHost);
     cudaMemcpy(user_space, user_space_dev + user_space_offset, user_space_size_threaded*sizeof(double), cudaMemcpyDeviceToHost);
 
@@ -91,19 +104,19 @@ void solver(int* instructions, long long* ops, double* values,
 
 EXPORT void solve_32(int* instructions, long long* ops, double* values, 
         int stack_size, int output_stack_size, double* user_space, int user_space_size, 
-        int blocks, int threads, double* result) 
+        int blocks, int threads, double* result, double* rt_statistics) 
 {
     solver<float>(instructions, ops, values, stack_size, output_stack_size,
-            user_space, user_space_size, blocks, threads, result);
+            user_space, user_space_size, blocks, threads, result, rt_statistics);
 
 }
 
 EXPORT void solve_64(int* instructions, long long* ops, double* values, 
     int stack_size, int output_stack_size, double* user_space, int user_space_size,
-    int blocks, int threads, double* result) 
+    int blocks, int threads, double* result, double* rt_statistics) 
 {
     solver<double>(instructions, ops, values, stack_size, output_stack_size,
-            user_space, user_space_size, blocks, threads, result);
+            user_space, user_space_size, blocks, threads, result, rt_statistics);
 }
 
 

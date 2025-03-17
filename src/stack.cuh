@@ -8,6 +8,8 @@
  * @copyright Copyright (c) 2022-2025
  * 
  */
+ #include <cooperative_groups.h>
+ namespace cg = cooperative_groups;
 
  #ifndef _STACK_CUH
  #define _STACK_CUH
@@ -97,6 +99,11 @@ enum OPCODES {
     // Type-casting opcodes, these cause truncation of the value.
     LONGLONGTODOUBLE = 0x16C8,
     DOUBLETOLONGLONG,
+
+    // Synchronization opcodes
+    SYNCWARP = 0x1A94,
+    SYNCBLOCK,
+    SYNCGRID
 
 };
 
@@ -1275,6 +1282,31 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I
         case DOUBLETOLONGLONG:
         {
             push_t(outputstack, o_stackidx, __longlong_as_double((long long)pop_t(outputstack, o_stackidx, nt)), nt);
+            break;
+        }
+
+        case SYNCWARP:
+        {
+            // Sync all threads in a warp
+            cg::thread_block block = cg::this_thread_block();
+            auto my_tile = cg::tiled_partition<32>(block);
+            if (my_tile.meta_group_rank() == 0) {
+                my_tile.sync();
+            }
+            break;
+        }
+        case SYNCBLOCK:
+        {
+            // Sync all threads in a block
+            cg::thread_block block = cg::this_thread_block();
+            block.sync();
+            break;
+        }
+        case SYNCGRID:
+        {
+            // Sync all threads in a grid
+            cg::grid_group grid = cg::this_grid();
+            grid.sync();
             break;
         }
     }
