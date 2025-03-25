@@ -108,7 +108,7 @@ enum OPCODES {
     SYNCGRID,
 
     // Exception handling opcodes, these are not implemented yet.
-    ERROR = 0x1E60,
+    EXCEPTION = 0x1E60,
 };
 
 template<class U, class I>
