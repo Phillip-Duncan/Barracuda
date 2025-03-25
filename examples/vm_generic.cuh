@@ -13,8 +13,8 @@
 template<class f3264>
 __global__ 
 void generic_kernel(int* stack, int stacksize, long long* opstack,
-    double* valuestack, double* outputstack, double* userspace,
-    int Nthreads) 
+    double* valuestack, double* outputstack, double* userspace, 
+    long long* userspace_sizes, int Nthreads) 
 {
     int s_size = stacksize;
 
@@ -28,7 +28,7 @@ void generic_kernel(int* stack, int stacksize, long long* opstack,
     userspace[tid+Nthreads] = b;
 
     evaluateStackExpr<f3264>(stack,s_size,opstack, valuestack, 
-        outputstack, tid, Nthreads, userspace);
+        outputstack, tid, Nthreads, userspace, userspace_sizes);
 }
 
 #endif

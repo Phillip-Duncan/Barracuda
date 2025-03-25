@@ -40,7 +40,7 @@
 
 template<class f3264>
 void solver(int* instructions, long long* ops, double* values, 
-    int stack_size, int output_stack_size, double* user_space, int user_space_size,
+    int stack_size, int output_stack_size, double* userspace, long long* userspace_sizes,
     int blocks, int threads, double* result, double* rt_statistics)
 {
     dim3 Grid(blocks,1,1);
@@ -64,25 +64,33 @@ void solver(int* instructions, long long* ops, double* values,
     cudaMalloc((void**)&outputstack_dev,output_stack_size*threads*blocks*sizeof(double));
     cudaMemset(outputstack_dev,0,output_stack_size*threads*blocks*sizeof(double));
 
-    double* user_space_dev = NULL;
+    double* userspace_dev = NULL;
+    long long* userspace_sizes_dev = NULL;
 
-    int total_user_space_size = (NUM_VARS_TOTAL + user_space_size) * Block.y * Grid.x;
-    int user_space_size_threaded = user_space_size * Block.y * Grid.x;
+    long long total_userspace_size = ((userspace_sizes[0]) * Block.y * Grid.x) + userspace_sizes[1];
+    long long userspace_size_mutable = (userspace_sizes[0] - NUM_VARS_TOTAL) * Block.y * Grid.x;
 
-    int user_space_offset = NUM_VARS_TOTAL * Block.y * Grid.x;
 
-    cudaMalloc((void**)&user_space_dev, total_user_space_size*sizeof(double));
-    cudaMemset((void**)&user_space_dev, 0, total_user_space_size*sizeof(double));
-    cudaMemcpy(user_space_dev + user_space_offset, user_space, user_space_size_threaded*sizeof(double), cudaMemcpyHostToDevice);
+    long long userspace_mutable_offset = NUM_VARS_TOTAL * Block.y * Grid.x;
+    long long userspace_constant_offset = (userspace_sizes[0]) * Block.y * Grid.x;
+
+    // Allocate MUTABLE and CONSTANT userspace memory on device
+    cudaMalloc((void**)&userspace_dev, total_userspace_size*sizeof(double));
+    cudaMemset(userspace_dev, 0, total_userspace_size*sizeof(double));
+    cudaMemcpy(userspace_dev + userspace_mutable_offset, userspace, userspace_size_mutable*sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(userspace_dev + userspace_constant_offset, userspace + userspace_size_mutable, userspace_sizes[1]*sizeof(double), cudaMemcpyHostToDevice);
+
+    // Allocate sizes of userspace on device
+    cudaMalloc((void**)&userspace_sizes_dev, 2*sizeof(long long));
+    cudaMemcpy(userspace_sizes_dev, userspace_sizes, 2*sizeof(long long), cudaMemcpyHostToDevice);
 
     // Set up timer to time kernel execution for statistics
-
     typedef std::chrono::high_resolution_clock Clock;
     auto timer_start = Clock::now();
 
-    // Launch example kernel
+    // Launch kernel
     generic_kernel<f3264><<<Grid,Block>>>(stack_dev, stack_size, opstack_dev,
-    valuesstack_dev, outputstack_dev, user_space_dev, threads*blocks);
+    valuesstack_dev, outputstack_dev, userspace_dev, userspace_sizes_dev, threads*blocks);
     cudaDeviceSynchronize();
 
     auto timer_end = Clock::now();
@@ -91,9 +99,9 @@ void solver(int* instructions, long long* ops, double* values,
     rt_statistics[0] = (timer_end - timer_start).count() / 1e9;
     
 
-    // Copy memory back to host and free memory
+    // Copy memory back to host and free memory, dont need to copy const memory
     cudaMemcpy(result,outputstack_dev,output_stack_size*threads*blocks*sizeof(double),cudaMemcpyDeviceToHost);
-    cudaMemcpy(user_space, user_space_dev + user_space_offset, user_space_size_threaded*sizeof(double), cudaMemcpyDeviceToHost);
+    cudaMemcpy(userspace, userspace_dev + userspace_mutable_offset, userspace_size_mutable*sizeof(double), cudaMemcpyDeviceToHost);
 
     cudaFree(stack_dev);
     cudaFree(opstack_dev);
@@ -103,20 +111,20 @@ void solver(int* instructions, long long* ops, double* values,
 
 
 EXPORT void solve_32(int* instructions, long long* ops, double* values, 
-        int stack_size, int output_stack_size, double* user_space, int user_space_size, 
+        int stack_size, int output_stack_size, double* userspace, long long* userspace_sizes, 
         int blocks, int threads, double* result, double* rt_statistics) 
 {
     solver<float>(instructions, ops, values, stack_size, output_stack_size,
-            user_space, user_space_size, blocks, threads, result, rt_statistics);
+            userspace, userspace_sizes, blocks, threads, result, rt_statistics);
 
 }
 
 EXPORT void solve_64(int* instructions, long long* ops, double* values, 
-    int stack_size, int output_stack_size, double* user_space, int user_space_size,
+    int stack_size, int output_stack_size, double* userspace, long long* userspace_sizes,
     int blocks, int threads, double* result, double* rt_statistics) 
 {
     solver<double>(instructions, ops, values, stack_size, output_stack_size,
-            user_space, user_space_size, blocks, threads, result, rt_statistics);
+            userspace, userspace_sizes, blocks, threads, result, rt_statistics);
 }
 
 

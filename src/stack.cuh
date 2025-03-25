@@ -39,7 +39,8 @@ enum OPCODES {
 
     // Basic-extended opcodes
     MALLOC, FREE, MEMCPY, MEMSET,
-    READ, WRITE, ADD_P, SUB_P,
+    READ, WRITE, ADD_PTR, SUB_PTR,
+    MUL_PTR, DIV_PTR,
     TERNARY,
 
     // Simplified Compare opcodes
@@ -95,6 +96,7 @@ enum OPCODES {
     LDPC = 0x12FC, LDTID,
     LDNXPTR, LDSTK_PTR, RCSTK_PTR,
     LDNT, LDNX, RCNX, LDUSPTR,
+    LDCUX, LDCUPTR,
 
     // Type-casting opcodes, these cause truncation of the value.
     LONGLONGTODOUBLE = 0x16C8,
@@ -103,8 +105,10 @@ enum OPCODES {
     // Synchronization opcodes
     SYNCWARP = 0x1A94,
     SYNCBLOCK,
-    SYNCGRID
+    SYNCGRID,
 
+    // Exception handling opcodes, these are not implemented yet.
+    ERROR = 0x1E60,
 };
 
 template<class U, class I>
@@ -186,11 +190,13 @@ inline void jmp(T* stack, I &stackidx, I stacksize, I pos) {
  * @param o_stackidx output stack index.
  * @param nt total number of threads executing concurrently.
  * @param mode recursive/irrecursive mode (0 means recursion allowed, 1 prevents function recursion).
- * @param variables Struct symbolic variable storage for loading/storing values from symbols
+ * @param userspace User space memory
+ * @param userspace_sizes user space sizes [0 = size of mutable space, 1 = size of immutable space].
  */
 template<class F, class I, class L>
 __device__
-inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I nt, I mode, double* userspace) {
+inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I nt, I mode, double* userspace,
+                        long long* userspace_sizes) {
     F value, v1, v2; // Mixed-precision floats.
     double lvalue, lv1, lv2; // Fixed double-precision values.
     long long livalue, liv1, liv2; // Fixed long long values.
@@ -396,19 +402,34 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I
                 *addr = value;
             break;
         }
-        case ADD_P: 
+        // Useful operations for pointer arithmetic, ensures long long / doubles are used for these.
+        case ADD_PTR: 
         {   
             liv1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             liv2 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             push_t(outputstack,o_stackidx, __longlong_as_double(liv2 + liv1), nt);
             break;
         }
-        case SUB_P: 
+        case SUB_PTR:
         {
             liv1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             liv2 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
             livalue = liv2 - liv1;
             push_t(outputstack,o_stackidx, __longlong_as_double(livalue), nt);
+            break;
+        }
+        case MUL_PTR:
+        {
+            lv1 = pop_t(outputstack,o_stackidx,nt);
+            lv2 = pop_t(outputstack,o_stackidx,nt);
+            push_t(outputstack,o_stackidx, lv1 * lv2 , nt);
+            break;
+        }
+        case DIV_PTR:
+        {
+            liv1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            liv1 = __double_as_longlong(pop_t(outputstack,o_stackidx,nt));
+            push_t(outputstack,o_stackidx, __longlong_as_double(liv2/liv1) , nt);
             break;
         }
         case TERNARY: 
@@ -1257,19 +1278,44 @@ inline void operation(long long op, double* outputstack, I &o_stackidx, L tid, I
         case LDNX:
         {
             livalue = __double_as_longlong(pop_t(outputstack, o_stackidx, nt));
-            push_t(outputstack, o_stackidx, (double)userspace[tid + (livalue)*nt], nt);
+            
+            // Check if livalue is within bounds of userspace_sizes[0]
+            if (userspace != NULL && livalue < userspace_sizes[0]) {
+                push_t(outputstack, o_stackidx, userspace[tid + (livalue)*nt], nt);
+            }
             break;
         }
         case RCNX:
         {
             livalue = __double_as_longlong(pop_t(outputstack, o_stackidx, nt));
-            userspace[tid + (livalue)*nt] = pop_t(outputstack, o_stackidx, nt);
+            
+            // Check if livalue is within bounds of userspace_sizes[0]
+            if (userspace != NULL && livalue < userspace_sizes[0]) {
+                userspace[tid + (livalue)*nt] = pop_t(outputstack, o_stackidx, nt);
+            }
             break;
         }
         case LDUSPTR:
         {
             if (userspace != NULL) {
                 push_t(outputstack, o_stackidx, __longlong_as_double((long long)&userspace[0]), nt);
+            }
+            break;
+        }
+        case LDCUX:
+        {
+            // Load constant value from constant userspace (this does not have an analogous RC operation as it's constant memory)
+            livalue = __double_as_longlong(pop_t(outputstack, o_stackidx, nt));
+            if (userspace != NULL && livalue + userspace_sizes[0] < userspace_sizes[1] + userspace_sizes[0]) {
+                push_t(outputstack, o_stackidx, userspace[(userspace_sizes[0])*nt + livalue], nt);
+            }
+            break;
+        }
+        case LDCUPTR:
+        {
+            // Load constant userspace pointer. (BEWARE: This could potentially let constant userspace be written to!)
+            if (userspace != NULL && userspace_sizes[0] < userspace_sizes[1] + userspace_sizes[0]) {
+                push_t(outputstack, o_stackidx, __longlong_as_double((long long)&userspace[userspace_sizes[0]*nt]), nt);
             }
             break;
         }

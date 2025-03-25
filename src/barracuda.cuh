@@ -44,7 +44,7 @@ template<class F, class I, class L>
 __device__
 void eval(I type, I* stack, I &stackidx, I &stacksize, long long* opstack,
 double* valuestack, double* outputstack, I &outputstackidx, 
-L tid, I nt, double* userspace)
+L tid, I nt, double* userspace, long long* userspace_sizes)
 {
     long long op = read(opstack, stackidx);
     double value = read(valuestack, stackidx);
@@ -52,7 +52,7 @@ L tid, I nt, double* userspace)
     switch(type) {
         case Instructions::OP: 
         {
-            operation<F>(op, outputstack, outputstackidx, tid, nt, 0, userspace);
+            operation<F>(op, outputstack, outputstackidx, tid, nt, 0, userspace, userspace_sizes);
             break;
         }
         case Instructions::VALUE:
@@ -80,12 +80,12 @@ L tid, I nt, double* userspace)
         case Instructions::SI_VALUE_OP:
         {
             push_t(outputstack, outputstackidx, value, nt);
-            operation<F>(op, outputstack, outputstackidx, tid, nt, 0, userspace);
+            operation<F>(op, outputstack, outputstackidx, tid, nt, 0, userspace, userspace_sizes);
             break;
         }
         case Instructions::SI_OP_VALUE: 
         {
-            operation<F>(op, outputstack, outputstackidx, tid, nt, 0, userspace);
+            operation<F>(op, outputstack, outputstackidx, tid, nt, 0, userspace, userspace_sizes);
             push_t(outputstack, outputstackidx, value, nt);
             break;
         }
@@ -100,7 +100,7 @@ L tid, I nt, double* userspace)
 template<class F, class I, class L>
 __device__
 inline void evaluateStackExpr(I* stack, I stacksize, long long* opstack, double* valuestack,
-    double* outputstack, L tid, I nt, double* userspace) 
+    double* outputstack, L tid, I nt, double* userspace, long long* userspace_sizes) 
 {
 
     // Make local versions of idxs for each thread
@@ -118,7 +118,7 @@ inline void evaluateStackExpr(I* stack, I stacksize, long long* opstack, double*
 
         eval<F>(type, stack, l_stackidx, l_stacksize, opstack, valuestack, 
                 outputstack, l_outputstackidx,
-                tid, nt, userspace);
+                tid, nt, userspace, userspace_sizes);
 
     }
 }
