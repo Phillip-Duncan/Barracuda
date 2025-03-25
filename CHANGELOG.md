@@ -1,3 +1,9 @@
+## 1.1.1 (2025-03-26)
+
+### Fix
+
+- **stack**: minor fix to OPCODES enum, ERROR cant be used due to a conflict to instead have renamed to EXCEPTION
+
 ## 1.1.0 (2025-03-26)
 
 ### Feat
